@@ -39,19 +39,23 @@ with open(arq_entrada, "r", encoding="utf-8") as arq:
 
         # Detectar qual tabela está lendo
         if linha.startswith("ReN."):                        # Define a categoria de acordo com o início da linha
-            tabela_atual = 'ReN'
+            tabela_atual = 'ReN' # Nó obrigatório (required node)
             continue
 
         elif linha.startswith("ReE."):
-            tabela_atual = 'ReE'
+            tabela_atual = 'ReE' # Aresta obrigatória (required edge)
             continue
 
         elif linha.startswith("ReA."):
-            tabela_atual = 'ReA'
+            tabela_atual = 'ReA' # Arco obrigatório (required arc)
             continue
 
-        elif linha.startswith("EDGE") or linha.startswith("ARC") or linha.startswith("NrA"):
-            tabela_atual = None                            # VAI USAR SÓ NAS ETAPAS SEGUINTES
+        elif linha.startswith("EDGE"): 
+            tabela_atual = 'Edge' # Aresta não obrigatória
+            continue
+
+        elif linha.startswith("ARC"):
+            tabela_atual = 'Arc' # Arco não obrigatória
             continue
 
 
@@ -72,7 +76,20 @@ with open(arq_entrada, "r", encoding="utf-8") as arq:
                 'custo_servico': int(custo_servico)
             }
             grafo[noh_destino][noh_origem] = grafo[noh_origem][noh_destino]  # Bidirecional porque é via de mão dupla
-            
+
+        if tabela_atual == 'Edge':
+
+            _, noh_origem, noh_destino, custo_transito = linha.split()
+
+            noh_origem, noh_destino = int(noh_origem), int(noh_destino)
+
+            grafo[noh_origem][noh_destino] = {
+                'tipo': 'aresta',
+                'obrigatoria': False,
+                'custo_transito': int(custo_transito),
+                # Não tem demanda nem custo_serviço pois não é obrigatório
+            }
+            grafo[noh_destino][noh_origem] = grafo[noh_origem][noh_destino]  # Bidirecional porque é via de mão dupla   
             
         elif tabela_atual == 'ReA':
 
@@ -86,6 +103,20 @@ with open(arq_entrada, "r", encoding="utf-8") as arq:
                 'custo_transito': int(custo_transito),
                 'demanda': int(demanda),
                 'custo_servico': int(custo_servico)
+            }
+            # Não será bidirecional porque é via de mão única
+
+        elif tabela_atual == 'Arc':
+
+            _, noh_origem, noh_destino, custo_transito = linha.split()
+
+            noh_origem, noh_destino = int(noh_origem), int(noh_destino)
+
+            grafo[noh_origem][noh_destino] = {
+                'tipo': 'arco',
+                'obrigatoria': False,
+                'custo_transito': int(custo_transito),
+                # Não tem demanda nem custo_serviço pois não é obrigatório
             }
             # Não será bidirecional porque é via de mão única
 
