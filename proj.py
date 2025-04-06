@@ -25,7 +25,7 @@ def ler_entrada(arq_entrada):
 
     # CRIANDO O GRAFO
     N = int (cabecalho['#Nodes'])
-    grafo = [[None for _ in range(N + 1)] for _ in range(N + 1)]    # Ignorar o indice 0
+    grafo = [[[] for _ in range(N + 1)] for _ in range(N + 1)]    # Ignorar o indice 0 e inicializa com uma lista vazia
 
     # Continuar a leitura a partir da linha 12
     with open(arq_entrada, "r", encoding="utf-8") as arq:
@@ -69,14 +69,15 @@ def ler_entrada(arq_entrada):
                 noh_origem, noh_destino = int(noh_origem), int(noh_destino)
 
 
-                grafo[noh_origem][noh_destino] = {
+                aresta_add = {
                     'tipo': 'aresta',
                     'obrigatoria': True,
                     'custo_transito': int(custo_transito),
                     'demanda': int(demanda),
                     'custo_servico': int(custo_servico)
                 }
-                grafo[noh_destino][noh_origem] = grafo[noh_origem][noh_destino]  # Bidirecional porque é via de mão dupla
+                grafo[noh_destino][noh_origem].append (aresta_add)
+                grafo[noh_origem][noh_destino].append (aresta_add) # Bidirecional porque é via de mão dupla
 
             if tabela_atual == 'Edge':
 
@@ -84,13 +85,14 @@ def ler_entrada(arq_entrada):
 
                 noh_origem, noh_destino = int(noh_origem), int(noh_destino)
 
-                grafo[noh_origem][noh_destino] = {
+                aresta_add = {
                     'tipo': 'aresta',
                     'obrigatoria': False,
                     'custo_transito': int(custo_transito),
                     # Não tem demanda nem custo_serviço pois não é obrigatório
                 }
-                grafo[noh_destino][noh_origem] = grafo[noh_origem][noh_destino]  # Bidirecional porque é via de mão dupla   
+                grafo[noh_destino][noh_origem].append (aresta_add)
+                grafo[noh_origem][noh_destino].append (aresta_add)  # Bidirecional 
                 
             elif tabela_atual == 'ReA':
 
@@ -98,13 +100,14 @@ def ler_entrada(arq_entrada):
 
                 noh_origem, noh_destino = int(noh_origem), int(noh_destino)
 
-                grafo[noh_origem][noh_destino] = {
+                arco_add = {
                     'tipo': 'arco',
                     'obrigatoria': True,
                     'custo_transito': int(custo_transito),
                     'demanda': int(demanda),
                     'custo_servico': int(custo_servico)
                 }
+                grafo[noh_origem][noh_destino].append(arco_add)
                 # Não será bidirecional porque é via de mão única
 
             elif tabela_atual == 'Arc':
@@ -113,13 +116,14 @@ def ler_entrada(arq_entrada):
 
                 noh_origem, noh_destino = int(noh_origem), int(noh_destino)
 
-                grafo[noh_origem][noh_destino] = {
+                arco_add = {
                     'tipo': 'arco',
                     'obrigatoria': False,
                     'custo_transito': int(custo_transito),
                     # Não tem demanda nem custo_serviço pois não é obrigatório
                 }
-                # Não será bidirecional porque é via de mão única
+                grafo[noh_origem][noh_destino].append(arco_add)
+                # Não será bidirecional
 
             elif tabela_atual == 'ReN':
 
@@ -127,36 +131,17 @@ def ler_entrada(arq_entrada):
 
                 noh = int(nome_noh[1:])                             # tira o "N" e converte o número
         
-                grafo[noh][noh] = {
+                noh_add = {
                     'tipo': 'noh',
                     'obrigatoria': True,
                     # custo_transito não existe já refere-se ao próprio nó
                     'demanda': int(demanda),
                     'custo_servico': int(custo_servico)
                 }
+                grafo[noh][noh].append(noh_add)
 
     return cabecalho, grafo
 
-def imprimir_matriz(grafo):
-    # Impressão da matriz de adjacência (valores de T. COST)
-    print("\nMatriz de adjacência (valores de T. COST):\n")
-    print("     ", end="")
-    for j in range(1, len(grafo)):
-        print(f"{j:>4}", end="")  # Alinhamento com 4 espaços
-    print()
-
-    # Separador
-    print("    " + "----" * (len(grafo) - 1))
-
-    # Linhas da matriz
-    for i in range(1, len(grafo)):
-        print(f"{i:>3} |", end="")  # Número da linha (nó)
-        for j in range(1, len(grafo)):
-            if grafo[i][j] is not None and 'custo_transito' in grafo[i][j]:
-                print(f"{grafo[i][j]['custo_transito']:>4}", end="")
-            else:
-                print("   .", end="")  # Mostra ponto se não há ligação
-        print()  # Quebra de linha para próxima linha da matriz
 
 def quant_vertices(cabecalho):
     return int(cabecalho['#Nodes'])
@@ -183,6 +168,51 @@ def densidade_grafo (cabecalho):
     A = quant_arcos (cabecalho)
 
     return (E + A)/(N * (N-1))
+
+def graus_nohs (grafo, cabecalho):
+    quant_nohs = quant_vertices (cabecalho)
+    grau_total = [0] * (quant_nohs +1) # Ignorar indice 0 pra facilitar
+    grau_entrada = [0] * (quant_nohs +1)
+    grau_saida = [0] * (quant_nohs +1)
+
+    for i in range (1,len(grafo)):
+        for j in range (1, len(grafo[i])):
+            celula = grafo[i][j]
+
+            if not celula == None:
+                for conexao in celula:
+                    tipo = conexao ['tipo']
+                
+                    if tipo == 'aresta':
+                        if i < j:  # Só processa uma vez para evitar contagem duplicada
+                            grau_total[i] += 1
+                            grau_total[j] += 1
+
+                    elif tipo == 'arco':
+                        grau_entrada [j] += 1
+                        grau_saida [i] += 1
+                        grau_total[i] += 1 # porque grau_total += grau_entrada + grau_saida
+                        grau_total[j] += 1
+
+    return grau_total, grau_entrada, grau_saida
+
+def grau_maximo (grau_total, grau_entrada, grau_saida):
+    # Ignora o índice 0
+    grau_total_max = max (grau_total[1:])
+    grau_entrada_max = max (grau_entrada[1:])
+    grau_saida_max = max (grau_saida[1:])
+
+    return grau_total_max, grau_entrada_max, grau_saida_max
+
+def grau_minimo(grau_total, grau_entrada, grau_saida):
+
+    grau_total_min = min(grau_total[1:])
+    grau_entrada_min = min(grau_entrada[1:])
+    grau_saida_min = min(grau_saida[1:])
+    
+    return grau_total_min, grau_entrada_min, grau_saida_min
+
+
 
 
 
