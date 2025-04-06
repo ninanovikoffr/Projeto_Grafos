@@ -167,7 +167,7 @@ def densidade_grafo (cabecalho):
     E = quant_arestas (cabecalho)
     A = quant_arcos (cabecalho)
 
-    return (E + A)/(N * (N-1))
+    return (E + A)/((N * (N-1))/2)
 
 def graus_nohs (grafo, cabecalho):
     quant_nohs = quant_vertices (cabecalho)
@@ -212,7 +212,120 @@ def grau_minimo(grau_total, grau_entrada, grau_saida):
     
     return grau_total_min, grau_entrada_min, grau_saida_min
 
+def floyd_warshall(grafo, cabecalho):
+    n = quant_vertices(cabecalho)
+    INF = float('inf') #infinito para inicializar as distâncias entre vértices que ainda não têm ligação direta
 
+    dist = [[INF] * (n+1) for _ in range(n+1)] # Matriz de distâncias
+    pred = [[None] * (n+1) for _ in range(n+1)] # Matriz de predecessores
+
+    
+    for i in range(1, n+1):
+        dist[i][i] = 0 # Distância de cada nó a ele mesmo é 0
+        pred[i][i] = i
+
+        for j in range(1, n+1):
+
+            celula = grafo[i][j]
+            if celula: # Se não for vazia ou nula
+
+                for conexao in celula:
+                    tipo = conexao['tipo']
+
+                    if tipo == 'aresta' or tipo == 'arco':
+                        custo = conexao['custo_transito']
+
+                        if tipo == 'aresta' and i < j: # Para evitar duplicação
+                            dist[i][j] = min(dist[i][j], custo)
+                            dist[j][i] = min(dist[j][i], custo)
+                            pred[i][j] = i
+                            pred[j][i] = j
+
+                        elif tipo == 'arco':
+                            dist[i][j] = min(dist[i][j], custo)
+                            pred[i][j] = i
+
+    # Algoritmo principal
+    for k in range(1, n+1):
+        for i in range(1, n+1):
+            for j in range(1, n+1):
+                if dist[i][k] + dist[k][j] < dist[i][j]:
+                    dist[i][j] = dist[i][k] + dist[k][j]
+                    pred[i][j] = pred[k][j]
+
+    return dist, pred
+
+def reconstruir_caminho(pred, i, j):
+    if pred[i][j] is None:
+        return []
+    
+    caminho = [j]
+    while i != j:
+        j = pred[i][j]
+        caminho.append(j)
+
+    caminho.reverse()
+    return caminho
+
+def calculo_intermediacao (grafo, cabecalho):
+    n = quant_vertices(cabecalho)
+    _, pred = floyd_warshall(grafo, cabecalho)
+
+    intermediacao = [0] * (n + 1)  # índice 0 ignorado
+
+    for s in range(1, n + 1):
+        for t in range(1, n + 1):
+            if s != t:
+                caminho = reconstruir_caminho(pred, s, t)
+                for v in caminho[1:-1]:  # ignora origem e destino
+                    intermediacao[v] += 1
+
+    return intermediacao
+
+def caminho_medio(grafo, cabecalho):
+    dist, _ = floyd_warshall(grafo, cabecalho)
+    n = quant_vertices(cabecalho)
+    
+    soma = 0
+    contagem = 0
+    
+    for i in range(1, n + 1):
+        for j in range(1, n + 1):
+            if i != j and dist[i][j] != float('inf'):
+                soma += dist[i][j]
+                contagem += 1
+
+    if contagem == 0:
+        return 0  # ou float('inf'), dependendo do que você quiser indicar
+    
+    return soma / contagem
+
+def diametro_grafo(grafo, cabecalho):
+    dist, _ = floyd_warshall(grafo, cabecalho)
+    n = quant_vertices(cabecalho)
+    
+    max_dist = 0
+    
+    for i in range(1, n + 1):
+        for j in range(1, n + 1):
+            if i != j and dist[i][j] != float('inf'):
+                if dist[i][j] > max_dist:
+                    max_dist = dist[i][j]
+
+    return max_dist
+
+
+# Impressão das matrizes
+def imprimir_matriz(matriz, usar_inf=False):
+
+    INF = float('inf')
+    for linha in matriz:
+        for valor in linha:
+            if usar_inf and valor == INF:
+                print("INF".ljust(5), end=" ")
+            else:
+                print(str(valor).ljust(5), end=" ")
+        print()
 
 
 
