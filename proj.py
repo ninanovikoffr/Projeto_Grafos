@@ -157,3 +157,32 @@ def imprimir_matriz(grafo):
             else:
                 print("   .", end="")  # Mostra ponto se não há ligação
         print()  # Quebra de linha para próxima linha da matriz
+
+def quant_vertices(cabecalho):
+    return int(cabecalho['#Nodes'])
+
+def quant_arestas(cabecalho):
+    return int(cabecalho['#Edges'])
+
+def quant_arcos(cabecalho):
+    return int(cabecalho['#Arcs'])
+
+def quant_vertices_requeridos(cabecalho):
+    return int(cabecalho['#Required N'])
+
+def quant_arestas_requeridas(cabecalho):
+    return int(cabecalho['#Required E'])
+
+def quant_arcos_requeridos(cabecalho):
+    return int(cabecalho['#Required A'])
+
+
+def densidade_grafo (cabecalho):
+    N = quant_vertices (cabecalho)
+    E = quant_arestas (cabecalho)
+    A = quant_arcos (cabecalho)
+
+    return (E + A)/(N * (N-1))
+
+
+
