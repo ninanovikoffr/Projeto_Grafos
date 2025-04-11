@@ -5,6 +5,9 @@ Alunas: Lana da Silva Miranda, Nina Tobias Novikoff da Cunha Ribeiro
 ___________________________________________________________________________________
 """
 
+import csv
+import pandas as pd
+
 # LEITURA DO ARQUIVO DE ENTRADA
 def ler_entrada(arq_entrada):
 
@@ -142,35 +145,15 @@ def ler_entrada(arq_entrada):
 
     return cabecalho, grafo
 
-
-def quant_vertices(cabecalho):
-    return int(cabecalho['#Nodes'])
-
-def quant_arestas(cabecalho):
-    return int(cabecalho['#Edges'])
-
-def quant_arcos(cabecalho):
-    return int(cabecalho['#Arcs'])
-
-def quant_vertices_requeridos(cabecalho):
-    return int(cabecalho['#Required N'])
-
-def quant_arestas_requeridas(cabecalho):
-    return int(cabecalho['#Required E'])
-
-def quant_arcos_requeridos(cabecalho):
-    return int(cabecalho['#Required A'])
-
-
 def densidade_grafo (cabecalho):
-    N = quant_vertices (cabecalho)
-    E = quant_arestas (cabecalho)
-    A = quant_arcos (cabecalho)
+    N = int(cabecalho['#Nodes'])
+    E = int(cabecalho['#Edges'])
+    A = int(cabecalho['#Arcs'])
 
     return (E + A)/((N * (N-1))/2)
 
 def graus_nohs (grafo, cabecalho):
-    quant_nohs = quant_vertices (cabecalho)
+    quant_nohs = int(cabecalho['#Nodes'])
     grau_total = [0] * (quant_nohs +1) # Ignorar indice 0 pra facilitar
     grau_entrada = [0] * (quant_nohs +1)
     grau_saida = [0] * (quant_nohs +1)
@@ -213,7 +196,7 @@ def grau_minimo(grau_total, grau_entrada, grau_saida):
     return grau_total_min, grau_entrada_min, grau_saida_min
 
 def floyd_warshall(grafo, cabecalho):
-    n = quant_vertices(cabecalho)
+    n = int(cabecalho['#Nodes'])
     INF = float('inf') #infinito para inicializar as distâncias entre vértices que ainda não têm ligação direta
 
     dist = [[INF] * (n+1) for _ in range(n+1)] # Matriz de distâncias
@@ -268,7 +251,7 @@ def reconstruir_caminho(pred, i, j):
     return caminho
 
 def calculo_intermediacao (grafo, cabecalho):
-    n = quant_vertices(cabecalho)
+    n = int(cabecalho['#Nodes'])
     _, pred = floyd_warshall(grafo, cabecalho)
 
     intermediacao = [0] * (n + 1)  # índice 0 ignorado
@@ -284,7 +267,7 @@ def calculo_intermediacao (grafo, cabecalho):
 
 def caminho_medio(grafo, cabecalho):
     dist, _ = floyd_warshall(grafo, cabecalho)
-    n = quant_vertices(cabecalho)
+    n = int(cabecalho['#Nodes'])
     
     soma = 0
     contagem = 0
@@ -296,13 +279,13 @@ def caminho_medio(grafo, cabecalho):
                 contagem += 1
 
     if contagem == 0:
-        return 0  # ou float('inf'), dependendo do que você quiser indicar
+        return 0  
     
     return soma / contagem
 
 def diametro_grafo(grafo, cabecalho):
     dist, _ = floyd_warshall(grafo, cabecalho)
-    n = quant_vertices(cabecalho)
+    n = int(cabecalho['#Nodes'])
     
     max_dist = 0
     
@@ -328,4 +311,41 @@ def imprimir_matriz(matriz, usar_inf=False):
         print()
 
 
+def exportar_csv(cabecalho, grafo):
 
+    grau_total, grau_entrada, grau_saida = graus_nohs (grafo, cabecalho)
+
+    grau_total_max, grau_entrada_max, grau_saida_max = grau_maximo (grau_total, grau_entrada, grau_saida)
+    grau_total_min, grau_entrada_min, grau_saida_min = grau_minimo (grau_total, grau_entrada, grau_saida)
+
+    with open("estatisticas.csv", "w", encoding="utf-8") as arq:
+        arq.write(f"Estatísticas,Valor\n")
+        arq.write(f"Quantidade de vértices:,{int(cabecalho['#Nodes'])}\n")
+        arq.write(f"Quantidade de arestas:,{int(cabecalho['#Edges'])}\n")
+        arq.write(f"Quantidade de arcos:,{int(cabecalho['#Arcs'])}\n")
+        arq.write(f"Quantidade de vértices requeridos:,{int(cabecalho['#Required N'])}\n")
+        arq.write(f"Quantidade de arestas requeridas:,{int(cabecalho['#Required E'])}\n")
+        arq.write(f"Quantidade de arcos requeridos:,{int(cabecalho['#Required A'])}\n")
+        arq.write(f"Densidade do grafo:,{densidade_grafo(cabecalho)}\n")
+        arq.write(f"Grau total máximo:,{grau_total_max}\n")
+        arq.write(f"Grau de entrada máximo:,{grau_entrada_max}\n")
+        arq.write(f"Grau de sída máximo:,{grau_saida_max}\n")
+        arq.write(f"Grau total mínimo:,{grau_total_min}\n")
+        arq.write(f"Grau de entrada mínimo:,{grau_entrada_min}\n")
+        arq.write(f"Grau de saída mínmo:,{grau_saida_min}\n")
+
+
+def visualizar_estatisticas():
+       
+    df = pd.read_csv("estatisticas.csv") # criação do data frame
+
+    def format_value(x): 
+        return f"{int(x)}" if x == int(x) else f"{x}" # Exibe como inteiro se não houver parte decimal
+
+    styled_df = ( 
+        df.style
+        .format({"Valor": format_value})
+        .set_caption("ESTÁTISTICAS BÁSICAS DO GRAFO:")
+        .hide(axis="index")
+    )
+    return styled_df
