@@ -7,143 +7,141 @@ ________________________________________________________________________________
 
 import csv
 import pandas as pd
+import os
 
 # LEITURA DO ARQUIVO DE ENTRADA
-def ler_entrada(arq_entrada):
 
-    # Dicionário para armazenar os dados do cabeçalho
+def ler_entrada(arq_entrada):
     cabecalho = {}
 
     # Leitura do cabeçalho
-    with open(arq_entrada, "r", encoding="utf-8") as arq:       # "r" modo de leitura (read)
-        
-        for _ in range(11):                                     # Já que todo cabeçalho tem 11 linhas
-            linha = arq.readline().strip()                      # Strip pra remover espaços em branco e readline para ler a linha toda
-            
-            if ":" in linha:
-                    chave, valor = linha.split(":", 1)          # split divide a linha uma vez em relação ao ":"
-                    cabecalho[chave.strip()] = valor.strip()    # armazena no dicionário as duas partes da linha
-
-    # print (cabecalho) # Para depuração
-
-    # CRIANDO O GRAFO
-    N = int (cabecalho['#Nodes'])
-    grafo = [[[] for _ in range(N + 1)] for _ in range(N + 1)]    # Ignorar o indice 0 e inicializa com uma lista vazia
-
-    # Continuar a leitura a partir da linha 12
     with open(arq_entrada, "r", encoding="utf-8") as arq:
-        linhas = arq.readlines()[11:]                           # Pula as 11 primeiras do cabeçalho
+        for _ in range(11):
+            linha = arq.readline().strip()
+            if ":" in linha:
+                chave, valor = linha.split(":", 1)
+                cabecalho[chave.strip()] = valor.strip()
 
-        tabela_atual = None                                     # para definir a categoria da tabela
+    N = int(cabecalho['#Nodes'])
+    grafo = [[[] for _ in range(N + 1)] for _ in range(N + 1)]
+
+    with open(arq_entrada, "r", encoding="utf-8") as arq:
+        linhas = arq.readlines()[11:]
+
+        tabela_atual = None
 
         for linha in linhas:
             linha = linha.strip()
             if not linha or linha.startswith("the data is"):
-                continue                                        # Se a linha estiver vazia ou for o "the data is based on...", pula a linha (continue).
-
-            # Detectar qual tabela está lendo
-            if linha.startswith("ReN."):                        # Define a categoria de acordo com o início da linha
-                tabela_atual = 'ReN' # Nó obrigatório (required node)
                 continue
 
+            # Detectar seção atual
+            if linha.startswith("ReN."):
+                tabela_atual = 'ReN'
+                continue
             elif linha.startswith("ReE."):
-                tabela_atual = 'ReE' # Aresta obrigatória (required edge)
+                tabela_atual = 'ReE'
                 continue
-
             elif linha.startswith("ReA."):
-                tabela_atual = 'ReA' # Arco obrigatório (required arc)
+                tabela_atual = 'ReA'
                 continue
-
-            elif linha.startswith("EDGE"): 
-                tabela_atual = 'Edge' # Aresta não obrigatória
+            elif linha.startswith("EDGE"):
+                tabela_atual = 'Edge'
                 continue
-
             elif linha.startswith("ARC"):
-                tabela_atual = 'Arc' # Arco não obrigatória
+                tabela_atual = 'Arc'
                 continue
 
+            partes = linha.split()
+            try:
+                if tabela_atual == 'ReE' and len(partes) == 6:
+                    _, u, v, custo, demanda, servico = partes
+                    u, v = int(u), int(v)
+                    aresta = {
+                        'tipo': 'aresta',
+                        'obrigatoria': True,
+                        'custo_transito': int(custo),
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    }
+                    grafo[u][v].append(aresta)
+                    grafo[v][u].append(aresta)
 
-            # Lendo as linhas com base na tabela
-            if tabela_atual == 'ReE':
+                elif tabela_atual == 'Edge' and len(partes) == 4:
+                    _, u, v, custo = partes
+                    u, v = int(u), int(v)
+                    aresta = {
+                        'tipo': 'aresta',
+                        'obrigatoria': False,
+                        'custo_transito': int(custo)
+                    }
+                    grafo[u][v].append(aresta)
+                    grafo[v][u].append(aresta)
 
-                # Definindo variáveis para armazenar as informações da linha da tabela
-                _, noh_origem, noh_destino, custo_transito, demanda, custo_servico = linha.split()
+                elif tabela_atual == 'ReA' and len(partes) == 6:
+                    _, u, v, custo, demanda, servico = partes
+                    u, v = int(u), int(v)
+                    arco = {
+                        'tipo': 'arco',
+                        'obrigatoria': True,
+                        'custo_transito': int(custo),
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    }
+                    grafo[u][v].append(arco)
 
-                noh_origem, noh_destino = int(noh_origem), int(noh_destino)
+                elif tabela_atual == 'Arc' and len(partes) == 4:
+                    _, u, v, custo = partes
+                    u, v = int(u), int(v)
+                    arco = {
+                        'tipo': 'arco',
+                        'obrigatoria': False,
+                        'custo_transito': int(custo)
+                    }
+                    grafo[u][v].append(arco)
 
+                elif tabela_atual == 'ReN' and len(partes) == 3:
+                    nome_no, demanda, servico = partes
+                    noh = int(nome_no[1:])
+                    grafo[noh][noh].append({
+                        'tipo': 'noh',
+                        'obrigatoria': True,
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    })
 
-                aresta_add = {
-                    'tipo': 'aresta',
-                    'obrigatoria': True,
-                    'custo_transito': int(custo_transito),
-                    'demanda': int(demanda),
-                    'custo_servico': int(custo_servico)
-                }
-                grafo[noh_destino][noh_origem].append (aresta_add)
-                grafo[noh_origem][noh_destino].append (aresta_add) # Bidirecional porque é via de mão dupla
-
-            if tabela_atual == 'Edge':
-
-                _, noh_origem, noh_destino, custo_transito = linha.split()
-
-                noh_origem, noh_destino = int(noh_origem), int(noh_destino)
-
-                aresta_add = {
-                    'tipo': 'aresta',
-                    'obrigatoria': False,
-                    'custo_transito': int(custo_transito),
-                    # Não tem demanda nem custo_serviço pois não é obrigatório
-                }
-                grafo[noh_destino][noh_origem].append (aresta_add)
-                grafo[noh_origem][noh_destino].append (aresta_add)  # Bidirecional 
-                
-            elif tabela_atual == 'ReA':
-
-                _, noh_origem, noh_destino, custo_transito, demanda, custo_servico = linha.split()
-
-                noh_origem, noh_destino = int(noh_origem), int(noh_destino)
-
-                arco_add = {
-                    'tipo': 'arco',
-                    'obrigatoria': True,
-                    'custo_transito': int(custo_transito),
-                    'demanda': int(demanda),
-                    'custo_servico': int(custo_servico)
-                }
-                grafo[noh_origem][noh_destino].append(arco_add)
-                # Não será bidirecional porque é via de mão única
-
-            elif tabela_atual == 'Arc':
-
-                _, noh_origem, noh_destino, custo_transito = linha.split()
-
-                noh_origem, noh_destino = int(noh_origem), int(noh_destino)
-
-                arco_add = {
-                    'tipo': 'arco',
-                    'obrigatoria': False,
-                    'custo_transito': int(custo_transito),
-                    # Não tem demanda nem custo_serviço pois não é obrigatório
-                }
-                grafo[noh_origem][noh_destino].append(arco_add)
-                # Não será bidirecional
-
-            elif tabela_atual == 'ReN':
-
-                nome_noh, demanda, custo_servico = linha.split()
-
-                noh = int(nome_noh[1:])                             # tira o "N" e converte o número
-        
-                noh_add = {
-                    'tipo': 'noh',
-                    'obrigatoria': True,
-                    # custo_transito não existe já refere-se ao próprio nó
-                    'demanda': int(demanda),
-                    'custo_servico': int(custo_servico)
-                }
-                grafo[noh][noh].append(noh_add)
+            except Exception as e:
+                print(f"⚠️ Erro ao processar linha da tabela {tabela_atual}: {linha}")
+                print(f"   Detalhes: {e}")
 
     return cabecalho, grafo
+
+
+#Funçoes auxiliares para armazenar 
+def quant_vertices(cabecalho):
+    return int(cabecalho.get('#Nodes', 0))
+
+def quant_arestas(cabecalho):
+    return int(cabecalho.get('#Edges', 0))
+
+def quant_arcos(cabecalho):
+    return int(cabecalho.get('#Arcs', 0))
+
+def quant_vertices_requeridos(cabecalho):
+    return int(cabecalho.get('#Required N', 0))
+
+def quant_arestas_requeridas(cabecalho):
+    return int(cabecalho.get('#Required E', 0))
+
+def quant_arcos_requeridos(cabecalho):
+    return int(cabecalho.get('#Required A', 0))
+
+def capacidade_veiculo(cabecalho):
+    return int(cabecalho.get('Capacity', 0))
+
+def deposito(cabecalho):
+    return int(cabecalho.get('Depot Node', 0))
+
 
 def densidade_grafo (cabecalho):
     N = int(cabecalho['#Nodes'])
@@ -310,6 +308,126 @@ def imprimir_matriz(matriz, usar_inf=False):
                 print(str(valor).ljust(5), end=" ")
         print()
 
+# Implementaçao do CARP
+def extrair_obrigatorios(grafo, cabecalho):
+    servicos = [];
+
+    N = quant_vertices(cabecalho)
+    for i in range(1, N+1):
+        for j in range(1, N+1):
+            celula = grafo[i][j]
+            if celula: 
+                for conexao in celula: 
+                    if conexao.get('obrigatoria', False):
+                        custo_total = conexao.get('custo_transito', 0) + conexao.get('custo_servico', 0)
+                        if conexao['tipo'] == 'aresta':
+
+                            servicos.append({
+                                'origem' : i,
+                                'destino' : j,
+                                'demanda' : conexao.get('demanda', 0),
+                                'custo_total' : custo_total,
+                                'tipo' : 'aresta'
+                            })
+                            servicos.append({
+                                'origem' : j,
+                                'destino' : i,
+                                'demanda' : conexao.get('demanda', 0),
+                                'custo_total' : custo_total,
+                                'tipo' : 'aresta'
+                            })
+
+                        elif conexao['tipo'] == 'arco':
+                            servicos.append({
+                                'origem' : i,
+                                'destino' : j,
+                                'demanda' : conexao.get('demanda', 0),
+                                'custo_total' : custo_total,
+                                'tipo' : 'arco'
+                            })
+                        
+    return servicos 
+
+# Matriz menores caminhos dentre os obrigatorios 
+
+def matriz_obrigatorios(servicos, distancias):
+    n = len(servicos)
+    matriz_custos = [[float('inf')]* n for _ in range(n)]
+
+    for i in range(n): 
+        for j in range(n):
+            if i == j:
+                matriz_custos[i][j] = 0 
+                continue
+
+            origemJ = servicos[j]['origem']
+            destinoI = servicos[i]['destino']
+
+            deslocamento = distancias[destinoI][origemJ]
+
+            custo_servicoJ = servicos[j]['custo_total']
+
+            matriz_custos[i][j] = deslocamento + custo_servicoJ
+
+    return matriz_custos
+
+# Clarke wright
+
+def clarke_wright(servicos, matriz_custos, capacidade):
+    n = len(servicos)
+
+    # Inicializa uma rota para cada serviço (cada rota começa e termina no depósito)
+    rotas = [{'servicos': [i], 'carga': servicos[i]['demanda'], 'inicio': i, 'fim': i} for i in range(n)]
+
+    # Calcula economias para todas as combinações possíveis entre serviços
+    economias = []
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                economia = (matriz_custos[0][i] + matriz_custos[0][j] - matriz_custos[i][j])
+                economias.append((economia, i, j))
+
+    # Ordena as economias em ordem decrescente
+    economias.sort(reverse=True, key=lambda x: x[0])
+
+    # União das rotas
+    for economia, i, j in economias:
+        rota_i = next((r for r in rotas if r['fim'] == i), None)
+        rota_j = next((r for r in rotas if r['inicio'] == j), None)
+
+        if rota_i is None or rota_j is None or rota_i == rota_j:
+            continue
+
+        # Verifica capacidade para unir as rotas
+        if rota_i['carga'] + rota_j['carga'] <= capacidade:
+            # Une rotas concatenando
+            rota_i['servicos'].extend(rota_j['servicos'])
+            rota_i['fim'] = rota_j['fim']
+            rota_i['carga'] += rota_j['carga']
+
+            rotas.remove(rota_j)
+
+    return rotas
+
+# Custo total da rota
+
+def custo_rota(rota, matriz_custos):
+    servicos = rota['servicos']
+    custo = 0
+
+    # Custo ida do depósito (índice 0) até o primeiro serviço
+    custo += matriz_custos[0][servicos[0]]
+
+    # Custo entre serviços consecutivos
+    for i in range(len(servicos) - 1):
+        custo += matriz_custos[servicos[i]][servicos[i + 1]]
+
+    # Custo retorno do último serviço até o depósito
+    custo += matriz_custos[servicos[-1]][0]
+
+    return custo
+
+
 
 def exportar_csv(cabecalho, grafo):
 
@@ -349,3 +467,87 @@ def visualizar_estatisticas():
         .hide(axis="index")
     )
     return styled_df
+
+# Imprimir no formato correto 
+
+def imprimir_rotas(rotas, servicos, custo_total, matriz_custos):
+    print(int(custo_total))
+    print(len(rotas))
+    
+    for idx, rota in enumerate(rotas, 1):
+        carga_total = sum([servicos[i]['demanda'] for i in set(rota['servicos'])])
+        servicos_na_rota = rota['servicos']
+
+        custo_rota_valor = custo_rota(rota, matriz_custos)
+        print(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(servicos_na_rota) + 2}")
+
+        print("(D 0,1,1)", end=" ")
+        for i in servicos_na_rota:
+            s = servicos[i]
+            print(f"(S {i+1},{s['origem']},{s['destino']})", end=" ")
+        print("(D 0,1,1)")
+
+
+def verificar_factibilidade(rotas, servicos, capacidade):
+    print("=== Verificação da Solução ===")
+    
+    demanda_total_servicos = sum(s['demanda'] for s in servicos)
+    demanda_total_rotas = 0
+    
+    for idx, rota in enumerate(rotas, 1):
+        carga = sum(servicos[i]['demanda'] for i in set(rota['servicos']))
+        demanda_total_rotas += carga
+        status = "OK" if carga <= capacidade else "EXCEDE"
+        print(f"Rota {idx}: Carga = {carga} / Capacidade = {capacidade} -> {status}")
+    
+    print(f"Demanda total dos serviços: {demanda_total_servicos}")
+    print(f"Demanda total nas rotas: {demanda_total_rotas}")
+    
+    if demanda_total_rotas == demanda_total_servicos:
+        print("Todos os serviços foram atendidos exatamente uma vez.")
+    else:
+        print("ATENÇÃO: Diferença entre demanda total dos serviços e das rotas!")
+
+
+def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos):
+    with open(nome_saida, "w", encoding="utf-8") as f:
+        f.write(f"{int(custo_total)}\n")
+        f.write(f"{len(rotas)}\n")
+        f.write("0\n0\n")  # clocks simulados
+
+        for idx, rota in enumerate(rotas, 1):
+            carga_total = sum([servicos[i]['demanda'] for i in set(rota['servicos'])])
+            custo_rota_valor = custo_rota(rota, matriz_custos)
+            f.write(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(rota['servicos']) + 2}\n")
+            f.write("(D 0,1,1) ")
+            for i in rota['servicos']:
+                s = servicos[i]
+                f.write(f"(S {i+1},{s['origem']},{s['destino']}) ")
+            f.write("(D 0,1,1)\n")
+
+def processar_instancia(arquivo_entrada, pasta_saida):
+    nome_base = os.path.basename(arquivo_entrada).replace(".dat", "")
+    cabecalho, grafo = ler_entrada(arquivo_entrada)
+    dist, _ = floyd_warshall(grafo, cabecalho)
+    servicos = extrair_obrigatorios(grafo, cabecalho)
+    matriz_custos = matriz_obrigatorios(servicos, dist)
+    capacidade = capacidade_veiculo(cabecalho)
+
+    rotas = clarke_wright(servicos, matriz_custos, capacidade)
+    custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
+
+    nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
+    salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos)
+
+def processar_todos():
+    pasta_entrada = "instancias/"
+    pasta_saida = "solucoes/"
+    os.makedirs(pasta_saida, exist_ok=True)
+
+    arquivos = [f for f in os.listdir(pasta_entrada) if f.endswith(".dat")]
+
+    for arq in arquivos:
+        caminho = os.path.join(pasta_entrada, arq)
+        print(f"Processando {arq}...")
+        processar_instancia(caminho, pasta_saida)
+
