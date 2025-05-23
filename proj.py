@@ -111,7 +111,7 @@ def ler_entrada(arq_entrada):
                     })
 
             except Exception as e:
-                print(f"⚠️ Erro ao processar linha da tabela {tabela_atual}: {linha}")
+                print(f"⚠ Erro ao processar linha da tabela {tabela_atual}: {linha}")
                 print(f"   Detalhes: {e}")
 
     return cabecalho, grafo
@@ -550,4 +550,3 @@ def processar_todos():
         caminho = os.path.join(pasta_entrada, arq)
         print(f"Processando {arq}...")
         processar_instancia(caminho, pasta_saida)
-
