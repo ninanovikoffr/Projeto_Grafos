@@ -534,6 +534,10 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     capacidade = capacidade_veiculo(cabecalho)
 
     rotas = clarke_wright(servicos, matriz_custos, capacidade)
+
+    for rota in rotas:
+        otimizar(rota, matriz_custos)
+
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
 
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
@@ -550,3 +554,22 @@ def processar_todos():
         caminho = os.path.join(pasta_entrada, arq)
         print(f"Processando {arq}...")
         processar_instancia(caminho, pasta_saida)
+
+def otimizar(rota, matriz_custos):
+    servicos = rota['servicos']
+    melhor_rota = servicos[:]
+    melhor_custo = custo_rota({'servicos': melhor_rota}, matriz_custos)
+
+    melhorou = True
+    while melhorou:
+        melhorou = False
+        for i in range(1, len(melhor_rota) - 1):
+            for j in range(i + 1, len(melhor_rota)):
+                nova_ordem = melhor_rota[:i] + melhor_rota[i:j+1][::-1] + melhor_rota[j+1:]
+                novo_custo = custo_rota({'servicos': nova_ordem}, matriz_custos)
+                if novo_custo < melhor_custo:
+                    melhor_rota = nova_ordem
+                    melhor_custo = novo_custo
+                    melhorou = True
+
+    rota['servicos'] = melhor_rota
