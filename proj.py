@@ -314,12 +314,13 @@ estatisticas_gerais = []
 
 def adicionar_estatisticas(nome_base, cabecalho, grafo):
     grau_total, grau_entrada, grau_saida = graus_nohs(grafo, cabecalho)
-    grau_total_max = max(grau_total[1:])
-    grau_entrada_max = max(grau_entrada[1:])
-    grau_saida_max = max(grau_saida[1:])
-    grau_total_min = min(grau_total[1:])
-    grau_entrada_min = min(grau_entrada[1:])
-    grau_saida_min = min(grau_saida[1:])
+
+    grau_total_max = max(grau_total[1:]) if any(grau_total[1:]) else 0
+    grau_entrada_max = max(grau_entrada[1:]) if any(grau_entrada[1:]) else 0
+    grau_saida_max = max(grau_saida[1:]) if any(grau_saida[1:]) else 0
+    grau_total_min = min(grau_total[1:]) if any(grau_total[1:]) else 0
+    grau_entrada_min = min(grau_entrada[1:]) if any(grau_entrada[1:]) else 0
+    grau_saida_min = min(grau_saida[1:]) if any(grau_saida[1:]) else 0
     densidade = densidade_grafo(cabecalho)
 
     estatisticas_gerais.append({
@@ -338,8 +339,6 @@ def adicionar_estatisticas(nome_base, cabecalho, grafo):
         "Grau Entrada Mín": grau_entrada_min,
         "Grau Saída Mín": grau_saida_min
     })
-
-
 
 # Implementaçao do CARP
 def extrair_obrigatorios(grafo, cabecalho):
@@ -461,47 +460,6 @@ def custo_rota(rota, matriz_custos):
     return custo
 
 
-# Imprimir no formato correto 
-'''
-def imprimir_rotas(rotas, servicos, custo_total, matriz_custos):
-    print(int(custo_total))
-    print(len(rotas))
-    
-    for idx, rota in enumerate(rotas, 1):
-        carga_total = sum([servicos[i]['demanda'] for i in set(rota['servicos'])])
-        servicos_na_rota = rota['servicos']
-
-        custo_rota_valor = custo_rota(rota, matriz_custos)
-        print(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(servicos_na_rota) + 2}", end="")
-
-        print("(D 0,1,1)", end=" ")
-        for i in servicos_na_rota:
-            s = servicos[i]
-            print(f"(S {i+1},{s['origem']},{s['destino']})", end=" ")
-        print("(D 0,1,1)")'''
-
-
-def verificar_factibilidade(rotas, servicos, capacidade):
-    print("=== Verificação da Solução ===")
-    
-    demanda_total_servicos = sum(s['demanda'] for s in servicos)
-    demanda_total_rotas = 0
-    
-    for idx, rota in enumerate(rotas, 1):
-        carga = sum(servicos[i]['demanda'] for i in set(rota['servicos']))
-        demanda_total_rotas += carga
-        status = "OK" if carga <= capacidade else "EXCEDE"
-        print(f"Rota {idx}: Carga = {carga} / Capacidade = {capacidade} -> {status}")
-    
-    print(f"Demanda total dos serviços: {demanda_total_servicos}")
-    print(f"Demanda total nas rotas: {demanda_total_rotas}")
-    
-    if demanda_total_rotas == demanda_total_servicos:
-        print("Todos os serviços foram atendidos exatamente uma vez.")
-    else:
-        print("ATENÇÃO: Diferença entre demanda total dos serviços e das rotas!")
-
-
 def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos, clocks_alg, clocks_total):
     with open(nome_saida, "w", encoding="utf-8") as f:
         f.write(f"{int(custo_total)}\n")
@@ -530,16 +488,10 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     matriz_custos = matriz_obrigatorios(servicos, dist)
     capacidade = capacidade_veiculo(cabecalho)
 
-    adicionar_estatisticas(nome_base, cabecalho, grafo)
-    df = pd.DataFrame(estatisticas_gerais)
-    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
 
     inicio_alg = time.perf_counter_ns()
     rotas = clarke_wright(servicos, matriz_custos, capacidade)
     fim_alg = time.perf_counter_ns()
-
-    '''for rota in rotas:
-        otimizar(rota, matriz_custos)'''
 
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
 
@@ -550,6 +502,8 @@ def processar_instancia(arquivo_entrada, pasta_saida):
 
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
     salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos, clocks_alg, clocks_total)
+
+    adicionar_estatisticas(nome_base, cabecalho, grafo)
 
 def processar_todos():
     pasta_entrada = "instancias/"
@@ -563,21 +517,6 @@ def processar_todos():
         print(f"Processando {arq}...")
         processar_instancia(caminho, pasta_saida)
 
-'''def otimizar(rota, matriz_custos):
-    servicos = rota['servicos']
-    melhor_rota = servicos[:]
-    melhor_custo = custo_rota({'servicos': melhor_rota}, matriz_custos)
+    df = pd.DataFrame(estatisticas_gerais)
+    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
 
-    melhorou = True
-    while melhorou:
-        melhorou = False
-        for i in range(1, len(melhor_rota) - 1):
-            for j in range(i + 1, len(melhor_rota)):
-                nova_ordem = melhor_rota[:i] + melhor_rota[i:j+1][::-1] + melhor_rota[j+1:]
-                novo_custo = custo_rota({'servicos': nova_ordem}, matriz_custos)
-                if novo_custo < melhor_custo:
-                    melhor_rota = nova_ordem
-                    melhor_custo = novo_custo
-                    melhorou = True
-
-    rota['servicos'] = melhor_rota'''
