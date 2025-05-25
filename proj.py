@@ -479,7 +479,7 @@ def imprimir_rotas(rotas, servicos, custo_total, matriz_custos):
         servicos_na_rota = rota['servicos']
 
         custo_rota_valor = custo_rota(rota, matriz_custos)
-        print(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(servicos_na_rota) + 2}")
+        print(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(servicos_na_rota) + 2}", end="")
 
         print("(D 0,1,1)", end=" ")
         for i in servicos_na_rota:
