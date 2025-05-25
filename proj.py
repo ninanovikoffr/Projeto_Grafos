@@ -8,6 +8,7 @@ ________________________________________________________________________________
 import csv
 import pandas as pd
 import os
+import time
 
 # LEITURA DO ARQUIVO DE ENTRADA
 
@@ -308,6 +309,38 @@ def imprimir_matriz(matriz, usar_inf=False):
                 print(str(valor).ljust(5), end=" ")
         print()
 
+
+estatisticas_gerais = []
+
+def adicionar_estatisticas(nome_base, cabecalho, grafo):
+    grau_total, grau_entrada, grau_saida = graus_nohs(grafo, cabecalho)
+    grau_total_max = max(grau_total[1:])
+    grau_entrada_max = max(grau_entrada[1:])
+    grau_saida_max = max(grau_saida[1:])
+    grau_total_min = min(grau_total[1:])
+    grau_entrada_min = min(grau_entrada[1:])
+    grau_saida_min = min(grau_saida[1:])
+    densidade = densidade_grafo(cabecalho)
+
+    estatisticas_gerais.append({
+        "Instância": nome_base,
+        "Qtde Vértices": int(cabecalho['#Nodes']),
+        "Qtde Arestas": int(cabecalho['#Edges']),
+        "Qtde Arcos": int(cabecalho['#Arcs']),
+        "Qtde Vértices Req.": int(cabecalho['#Required N']),
+        "Qtde Arestas Req.": int(cabecalho['#Required E']),
+        "Qtde Arcos Req.": int(cabecalho['#Required A']),
+        "Densidade": round(densidade, 4),
+        "Grau Total Máx": grau_total_max,
+        "Grau Entrada Máx": grau_entrada_max,
+        "Grau Saída Máx": grau_saida_max,
+        "Grau Total Mín": grau_total_min,
+        "Grau Entrada Mín": grau_entrada_min,
+        "Grau Saída Mín": grau_saida_min
+    })
+
+
+
 # Implementaçao do CARP
 def extrair_obrigatorios(grafo, cabecalho):
     servicos = [];
@@ -428,48 +461,8 @@ def custo_rota(rota, matriz_custos):
     return custo
 
 
-
-def exportar_csv(cabecalho, grafo):
-
-    grau_total, grau_entrada, grau_saida = graus_nohs (grafo, cabecalho)
-
-    grau_total_max, grau_entrada_max, grau_saida_max = grau_maximo (grau_total, grau_entrada, grau_saida)
-    grau_total_min, grau_entrada_min, grau_saida_min = grau_minimo (grau_total, grau_entrada, grau_saida)
-
-    with open("estatisticas.csv", "w", encoding="utf-8") as arq:
-        arq.write(f"Estatísticas,Valor\n")
-        arq.write(f"Quantidade de vértices:,{int(cabecalho['#Nodes'])}\n")
-        arq.write(f"Quantidade de arestas:,{int(cabecalho['#Edges'])}\n")
-        arq.write(f"Quantidade de arcos:,{int(cabecalho['#Arcs'])}\n")
-        arq.write(f"Quantidade de vértices requeridos:,{int(cabecalho['#Required N'])}\n")
-        arq.write(f"Quantidade de arestas requeridas:,{int(cabecalho['#Required E'])}\n")
-        arq.write(f"Quantidade de arcos requeridos:,{int(cabecalho['#Required A'])}\n")
-        arq.write(f"Densidade do grafo:,{densidade_grafo(cabecalho)}\n")
-        arq.write(f"Grau total máximo:,{grau_total_max}\n")
-        arq.write(f"Grau de entrada máximo:,{grau_entrada_max}\n")
-        arq.write(f"Grau de sída máximo:,{grau_saida_max}\n")
-        arq.write(f"Grau total mínimo:,{grau_total_min}\n")
-        arq.write(f"Grau de entrada mínimo:,{grau_entrada_min}\n")
-        arq.write(f"Grau de saída mínmo:,{grau_saida_min}\n")
-
-
-def visualizar_estatisticas():
-       
-    df = pd.read_csv("estatisticas.csv") # criação do data frame
-
-    def format_value(x): 
-        return f"{int(x)}" if x == int(x) else f"{x}" # Exibe como inteiro se não houver parte decimal
-
-    styled_df = ( 
-        df.style
-        .format({"Valor": format_value})
-        .set_caption("ESTÁTISTICAS BÁSICAS DO GRAFO:")
-        .hide(axis="index")
-    )
-    return styled_df
-
 # Imprimir no formato correto 
-
+'''
 def imprimir_rotas(rotas, servicos, custo_total, matriz_custos):
     print(int(custo_total))
     print(len(rotas))
@@ -485,7 +478,7 @@ def imprimir_rotas(rotas, servicos, custo_total, matriz_custos):
         for i in servicos_na_rota:
             s = servicos[i]
             print(f"(S {i+1},{s['origem']},{s['destino']})", end=" ")
-        print("(D 0,1,1)")
+        print("(D 0,1,1)")'''
 
 
 def verificar_factibilidade(rotas, servicos, capacidade):
@@ -509,16 +502,17 @@ def verificar_factibilidade(rotas, servicos, capacidade):
         print("ATENÇÃO: Diferença entre demanda total dos serviços e das rotas!")
 
 
-def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos):
+def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos, clocks_alg, clocks_total):
     with open(nome_saida, "w", encoding="utf-8") as f:
         f.write(f"{int(custo_total)}\n")
         f.write(f"{len(rotas)}\n")
-        f.write("0\n0\n")  # clocks simulados
+        f.write(f"{clocks_alg}\n")     # clocks do algoritmo
+        f.write(f"{clocks_total}\n")   # clocks do programa 
 
         for idx, rota in enumerate(rotas, 1):
             carga_total = sum([servicos[i]['demanda'] for i in set(rota['servicos'])])
             custo_rota_valor = custo_rota(rota, matriz_custos)
-            f.write(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(rota['servicos']) + 2}\n")
+            f.write(f"0 1 {idx} {carga_total} {int(custo_rota_valor)} {len(rota['servicos']) + 2} {' '}")
             f.write("(D 0,1,1) ")
             for i in rota['servicos']:
                 s = servicos[i]
@@ -528,20 +522,34 @@ def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_cus
 def processar_instancia(arquivo_entrada, pasta_saida):
     nome_base = os.path.basename(arquivo_entrada).replace(".dat", "")
     cabecalho, grafo = ler_entrada(arquivo_entrada)
+
+    inicio_total = time.perf_counter_ns()
+
     dist, _ = floyd_warshall(grafo, cabecalho)
     servicos = extrair_obrigatorios(grafo, cabecalho)
     matriz_custos = matriz_obrigatorios(servicos, dist)
     capacidade = capacidade_veiculo(cabecalho)
 
+    adicionar_estatisticas(nome_base, cabecalho, grafo)
+    df = pd.DataFrame(estatisticas_gerais)
+    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
+
+    inicio_alg = time.perf_counter_ns()
     rotas = clarke_wright(servicos, matriz_custos, capacidade)
+    fim_alg = time.perf_counter_ns()
 
     '''for rota in rotas:
         otimizar(rota, matriz_custos)'''
 
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
 
+    fim_total = time.perf_counter_ns()
+
+    clocks_alg = fim_alg - inicio_alg          # clocks do algoritmo
+    clocks_total = fim_total - inicio_total    # clocks do programa todo
+
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
-    salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos)
+    salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos, clocks_alg, clocks_total)
 
 def processar_todos():
     pasta_entrada = "instancias/"
