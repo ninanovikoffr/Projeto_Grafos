@@ -371,7 +371,7 @@ def matriz_obrigatorios(servicos, distancias):
 
     return matriz_custos
 
-# Clarke wright
+# Heuristica clarke wright
 
 def clarke_wright(servicos, matriz_custos, capacidade):
     n = len(servicos)
@@ -535,8 +535,8 @@ def processar_instancia(arquivo_entrada, pasta_saida):
 
     rotas = clarke_wright(servicos, matriz_custos, capacidade)
 
-    for rota in rotas:
-        otimizar(rota, matriz_custos)
+    '''for rota in rotas:
+        otimizar(rota, matriz_custos)'''
 
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
 
@@ -555,7 +555,7 @@ def processar_todos():
         print(f"Processando {arq}...")
         processar_instancia(caminho, pasta_saida)
 
-def otimizar(rota, matriz_custos):
+'''def otimizar(rota, matriz_custos):
     servicos = rota['servicos']
     melhor_rota = servicos[:]
     melhor_custo = custo_rota({'servicos': melhor_rota}, matriz_custos)
@@ -572,4 +572,4 @@ def otimizar(rota, matriz_custos):
                     melhor_custo = novo_custo
                     melhorou = True
 
-    rota['servicos'] = melhor_rota
+    rota['servicos'] = melhor_rota'''

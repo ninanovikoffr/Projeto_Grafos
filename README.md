@@ -23,7 +23,9 @@ Neste trabalho buscamos aplicar os principais conceitos aprendidos na disciplina
   - Centralidade de intermediação
   - Caminho médio
   - Diâmetro
-
+- 📋 Salvar as estatísticas de cada instância em uma planilha
+- 🧩 Utilizar uma heurística para encontrar a solução para cada instância
+- 🗂️ Armazenar os resultados em arquivos para cada instância, em uma pasta
 ---
 
 ## 🧠 Interpretação do Problema
@@ -35,7 +37,7 @@ Este projeto simula um cenário logístico urbano representado por um **grafo mi
 - **Arcos** representam ruas de mão única;
 - Um subconjunto desses elementos (vértices, arestas e arcos) deve obrigatoriamente ser atendido.
 
-O objetivo - que será cumprido nas etapas seguintes - é determinar rotas de custo mínimo que atendam todas as demandas, respeitando a **capacidade dos veículos** e sempre partindo e retornando a um **depósito central**.
+O objetivo é determinar rotas de custo mínimo que atendam todas as demandas, respeitando a **capacidade dos veículos** e sempre partindo e retornando a um **depósito central**.
 
 ---
 
@@ -51,11 +53,19 @@ O objetivo - que será cumprido nas etapas seguintes - é determinar rotas de cu
   - Cálculo de intermediação
   - Cálculo do caminho médio
   - Cálculo do diâmetro do grafo
-  - Impressão das matrizes de caminho mais curto e predecessores (para depuração)
+  - Função que armazena as estatísticas em uma planilha
+  - Extração de rotas obrigatórias
+  - Função que faz a matriz de menores caminhos entre as rotas obrigatórias
+  - Heurística para resolver o problema
+  - Função que retorna o custo total da rota 
 
 - `visualizacao.ipynb`: notebook usado como **main interativa**, com células que chamam as funções e exibem os resultados de forma separada.
 
-- `BHW1.dat`: uma das bases de dados com a matriz de adjacência do grafo.
+- `instancias`: pasta que contem as bases de dados utilizadas.
+
+- `solucoes`: pasta que será criada automaticamente para armazenar as soluções do problema.
+
+- `estatísticas`: planilha que armazena as estatísticas de todas as instâncias.
 
 ---
 
@@ -69,15 +79,15 @@ O objetivo - que será cumprido nas etapas seguintes - é determinar rotas de cu
 ## ⚙️ Como executar
 
 1. 🐍 Certifique-se de ter o **Python 3.x** e o **Jupyter Notebook** instalados.
-2. 📁 Coloque todos os arquivos (`proj.py`, `visualizacao.ipynb`, `BHW1.dat`) na mesma pasta.
+2. 📁 Coloque todos os arquivos e pasta de instancias (`proj.py`, `visualizacao.ipynb`, `instancias`) na mesma pasta.
 3. 📓 Abra o Jupyter e execute o notebook `visualizacao.ipynb`, célula por célula.
-4. ✅ Os resultados dos cálculos e algoritmos serão exibidos no próprio notebook.
+4. ✅ Os resultados dos cálculos e algoritmos serão criados em uma pasta "solucoes" 
 
-> O notebook está pronto para ler o arquivo automaticamente e mostrar os resultados de forma interativa!
+> O notebook está pronto para ler os arquivos e salvar os resultados automaticamente!
 
 - Caso ocorra erro como `NameError` ou `KeyError`, verifique:
   - Se o `proj.py` foi importado corretamente
-  - Se o arquivo `.dat` foi carregado com sucesso
+  - Se os arquivos `.dat` foi carregado com sucesso
 
 ---
 
