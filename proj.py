@@ -10,6 +10,14 @@ import pandas as pd
 import os
 import time
 
+#tratamento de erro
+
+def transforma(valor):
+    try:
+        return int(valor)
+    except (ValueError, TypeError):
+        return 0
+
 # LEITURA DO ARQUIVO DE ENTRADA
 
 def ler_entrada(arq_entrada):
@@ -120,28 +128,29 @@ def ler_entrada(arq_entrada):
 
 #Funçoes auxiliares para armazenar 
 def quant_vertices(cabecalho):
-    return int(cabecalho.get('#Nodes', 0))
+    return transforma(cabecalho.get('#Nodes'))
 
 def quant_arestas(cabecalho):
-    return int(cabecalho.get('#Edges', 0))
+    return transforma(cabecalho.get('#Edges'))
 
 def quant_arcos(cabecalho):
-    return int(cabecalho.get('#Arcs', 0))
+    return transforma(cabecalho.get('#Arcs'))
 
 def quant_vertices_requeridos(cabecalho):
-    return int(cabecalho.get('#Required N', 0))
+    return transforma(cabecalho.get('#Required N'))
 
 def quant_arestas_requeridas(cabecalho):
-    return int(cabecalho.get('#Required E', 0))
+    return transforma(cabecalho.get('#Required E'))
 
 def quant_arcos_requeridos(cabecalho):
-    return int(cabecalho.get('#Required A', 0))
+    return transforma(cabecalho.get('#Required A'))
 
 def capacidade_veiculo(cabecalho):
-    return int(cabecalho.get('Capacity', 0))
+    return transforma(cabecalho.get('Capacity'))
 
 def deposito(cabecalho):
-    return int(cabecalho.get('Depot Node', 0))
+    return transforma(cabecalho.get('Depot Node'))
+
 
 
 def densidade_grafo (cabecalho):
@@ -324,21 +333,22 @@ def adicionar_estatisticas(nome_base, cabecalho, grafo):
     densidade = densidade_grafo(cabecalho)
 
     estatisticas_gerais.append({
-        "Instância": nome_base,
-        "Qtde Vértices": int(cabecalho['#Nodes']),
-        "Qtde Arestas": int(cabecalho['#Edges']),
-        "Qtde Arcos": int(cabecalho['#Arcs']),
-        "Qtde Vértices Req.": int(cabecalho['#Required N']),
-        "Qtde Arestas Req.": int(cabecalho['#Required E']),
-        "Qtde Arcos Req.": int(cabecalho['#Required A']),
-        "Densidade": round(densidade, 4),
-        "Grau Total Máx": grau_total_max,
-        "Grau Entrada Máx": grau_entrada_max,
-        "Grau Saída Máx": grau_saida_max,
-        "Grau Total Mín": grau_total_min,
-        "Grau Entrada Mín": grau_entrada_min,
-        "Grau Saída Mín": grau_saida_min
-    })
+    "Instância": nome_base,
+    "Qtde Vértices": transforma(cabecalho.get('#Nodes')),
+    "Qtde Arestas": transforma(cabecalho.get('#Edges')),
+    "Qtde Arcos": transforma(cabecalho.get('#Arcs')),
+    "Qtde Vértices Req.": transforma(cabecalho.get('#Required N')),
+    "Qtde Arestas Req.": transforma(cabecalho.get('#Required E')),
+    "Qtde Arcos Req.": transforma(cabecalho.get('#Required A')),
+    "Densidade": round(densidade, 4),
+    "Grau Total Máx": grau_total_max,
+    "Grau Entrada Máx": grau_entrada_max,
+    "Grau Saída Máx": grau_saida_max,
+    "Grau Total Mín": grau_total_min,
+    "Grau Entrada Mín": grau_entrada_min,
+    "Grau Saída Mín": grau_saida_min
+})
+
 
 # Implementaçao do CARP
 def extrair_obrigatorios(grafo, cabecalho):
@@ -503,9 +513,14 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
     salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos, clocks_alg, clocks_total)
 
-    adicionar_estatisticas(nome_base, cabecalho, grafo)
+    try:
+        adicionar_estatisticas(nome_base, cabecalho, grafo)
+    except Exception as e:
+        print(f"❌ Erro ao adicionar estatísticas de {nome_base}: {e}")
 
-def processar_todos():
+
+
+'''def processar_todos():
     pasta_entrada = "instancias/"
     pasta_saida = "solucoes/"
     os.makedirs(pasta_saida, exist_ok=True)
@@ -518,5 +533,47 @@ def processar_todos():
         processar_instancia(caminho, pasta_saida)
 
     df = pd.DataFrame(estatisticas_gerais)
-    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
+    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")'''
+
+def processar_todos():
+    import sys
+    import os
+    import pandas as pd
+
+    pasta_entrada = "instancias/"
+    pasta_saida = "solucoes/"
+    os.makedirs(pasta_saida, exist_ok=True)
+
+    import re
+
+    def ordenar(nome):
+    # Divide o nome do arquivo em blocos de texto e números
+        return [int(bloco) if bloco.isdigit() else bloco.lower() 
+            for bloco in re.split(r'(\d+)', nome)]
+
+    arquivos = sorted([
+        f.strip() for f in os.listdir(pasta_entrada)
+        if f.lower().strip().endswith(".dat")
+    ], key=ordenar)
+
+
+    for idx, arq in enumerate(arquivos, start=1):
+        print(f"\n🟡 ({idx}/{len(arquivos)}) Processando {arq}...")
+        sys.stdout.flush()  # força exibir print antes da execução
+
+        caminho = os.path.join(pasta_entrada, arq)
+
+        try:
+            processar_instancia(caminho, pasta_saida)
+            print(f"✅ {arq} processado com sucesso.")
+        except Exception as e:
+            print(f"❌ Erro ao processar {arq}: {e}")
+
+    try:
+        df = pd.DataFrame(estatisticas_gerais)
+        df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
+        print("📁 Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
+    except Exception as e:
+        print(f"❌ Erro ao salvar o CSV: {e}")
+
 
