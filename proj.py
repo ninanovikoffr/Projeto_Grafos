@@ -10,17 +10,31 @@ import pandas as pd
 import os
 import time
 
-#tratamento de erro
 
+# Tratamento de erro
 def transforma(valor):
+    # Tenta converter para inteiro ou retorna 0. Evita quebras em campos mal formatados.
+    
     try:
         return int(valor)
     except (ValueError, TypeError):
         return 0
 
-# LEITURA DO ARQUIVO DE ENTRADA
-
+# Leitura de arquivo de entrada .dat 
 def ler_entrada(arq_entrada):
+
+    '''
+    * Lê arquivos .dat com dados de grafos logísticos.
+    * Identifica e organiza os elementos:
+
+    * ReN. = nós obrigatórios com demanda
+    * ReE. = arestas obrigatórias (bidirecionais)
+    * ReA. = arcos obrigatórios (direcionais)
+    * EDGE = arestas opcionais
+    * ARC = arcos opcionais
+    * Armazena tudo em uma matriz grafo[i][j] com listas de dicionários descrevendo conexões.
+    '''
+
     cabecalho = {}
 
     # Leitura do cabeçalho
@@ -126,7 +140,7 @@ def ler_entrada(arq_entrada):
     return cabecalho, grafo
 
 
-#Funçoes auxiliares para armazenar 
+# Funçoes auxiliares extraem e limpam os dados do cabeçalho do arquivo .dat.
 def quant_vertices(cabecalho):
     return transforma(cabecalho.get('#Nodes'))
 
@@ -151,8 +165,7 @@ def capacidade_veiculo(cabecalho):
 def deposito(cabecalho):
     return transforma(cabecalho.get('Depot Node'))
 
-
-
+# Calcula a densidade real do grafo
 def densidade_grafo (cabecalho):
     N = int(cabecalho['#Nodes'])
     E = int(cabecalho['#Edges'])
@@ -160,6 +173,7 @@ def densidade_grafo (cabecalho):
 
     return (E + A)/((N * (N-1))/2)
 
+# Calcula grau total, de entrada e de saída de cada nó
 def graus_nohs (grafo, cabecalho):
     quant_nohs = int(cabecalho['#Nodes'])
     grau_total = [0] * (quant_nohs +1) # Ignorar indice 0 pra facilitar
@@ -187,6 +201,7 @@ def graus_nohs (grafo, cabecalho):
 
     return grau_total, grau_entrada, grau_saida
 
+# Pega os maiores graus de cada tipo
 def grau_maximo (grau_total, grau_entrada, grau_saida):
     # Ignora o índice 0
     grau_total_max = max (grau_total[1:])
@@ -195,6 +210,7 @@ def grau_maximo (grau_total, grau_entrada, grau_saida):
 
     return grau_total_max, grau_entrada_max, grau_saida_max
 
+# Pega os menores graus de cada tipo
 def grau_minimo(grau_total, grau_entrada, grau_saida):
 
     grau_total_min = min(grau_total[1:])
@@ -203,7 +219,14 @@ def grau_minimo(grau_total, grau_entrada, grau_saida):
     
     return grau_total_min, grau_entrada_min, grau_saida_min
 
+# Floyd-Warshall 
 def floyd_warshall(grafo, cabecalho):
+
+    '''
+    * Calcula *distância mínima* entre todos os pares de vértices usando o algoritmo clássico de Floyd-Warshall.
+    * Cria também matriz de predecessores (pred) para reconstruir caminhos.
+    '''
+
     n = int(cabecalho['#Nodes'])
     INF = float('inf') #infinito para inicializar as distâncias entre vértices que ainda não têm ligação direta
 
@@ -246,6 +269,7 @@ def floyd_warshall(grafo, cabecalho):
 
     return dist, pred
 
+# Reconstroi o caminho entre dois nós usando a matriz pred.
 def reconstruir_caminho(pred, i, j):
     if pred[i][j] is None:
         return []
@@ -258,6 +282,7 @@ def reconstruir_caminho(pred, i, j):
     caminho.reverse()
     return caminho
 
+#  Mede intermediação dos nós: quantas vezes cada nó aparece nos caminhos mínimos entre todos os pares.
 def calculo_intermediacao (grafo, cabecalho):
     n = int(cabecalho['#Nodes'])
     _, pred = floyd_warshall(grafo, cabecalho)
@@ -273,6 +298,7 @@ def calculo_intermediacao (grafo, cabecalho):
 
     return intermediacao
 
+# Calcula o comprimento médio dos caminhos
 def caminho_medio(grafo, cabecalho):
     dist, _ = floyd_warshall(grafo, cabecalho)
     n = int(cabecalho['#Nodes'])
@@ -291,6 +317,7 @@ def caminho_medio(grafo, cabecalho):
     
     return soma / contagem
 
+# Calcula o diâmetro (maior distância entre dois nós).
 def diametro_grafo(grafo, cabecalho):
     dist, _ = floyd_warshall(grafo, cabecalho)
     n = int(cabecalho['#Nodes'])
@@ -306,21 +333,9 @@ def diametro_grafo(grafo, cabecalho):
     return max_dist
 
 
-# Impressão das matrizes
-def imprimir_matriz(matriz, usar_inf=False):
-
-    INF = float('inf')
-    for linha in matriz:
-        for valor in linha:
-            if usar_inf and valor == INF:
-                print("INF".ljust(5), end=" ")
-            else:
-                print(str(valor).ljust(5), end=" ")
-        print()
-
-
 estatisticas_gerais = []
 
+# Coleta estatísticas para salvar num .csv no final (opcional)
 def adicionar_estatisticas(nome_base, cabecalho, grafo):
     grau_total, grau_entrada, grau_saida = graus_nohs(grafo, cabecalho)
 
@@ -352,6 +367,8 @@ def adicionar_estatisticas(nome_base, cabecalho, grafo):
 
 # Implementaçao do CARP
 def extrair_obrigatorios(grafo, cabecalho):
+    #Extrai os serviços obrigatórios (nós, arestas e arcos obrigatórios) com suas demandas e custos
+    
     servicos = [];
 
     N = quant_vertices(cabecalho)
@@ -391,8 +408,9 @@ def extrair_obrigatorios(grafo, cabecalho):
     return servicos 
 
 # Matriz menores caminhos dentre os obrigatorios 
-
 def matriz_obrigatorios(servicos, distancias):
+    # Cria uma matriz de custos entre os serviços, somando deslocamento e custo do serviço destino
+
     n = len(servicos)
     matriz_custos = [[float('inf')]* n for _ in range(n)]
 
@@ -413,9 +431,8 @@ def matriz_obrigatorios(servicos, distancias):
 
     return matriz_custos
 
-# Heuristica clarke wright
-
-def clarke_wright(servicos, matriz_custos, capacidade):
+# Otimizacao da heuristica Clarke e Wright
+def clarke_wright_otimizado(servicos, matriz_custos, capacidade):
     n = len(servicos)
 
     # Inicializa uma rota para cada serviço (cada rota começa e termina no depósito)
@@ -426,11 +443,11 @@ def clarke_wright(servicos, matriz_custos, capacidade):
     for i in range(n):
         for j in range(n):
             if i != j:
-                economia = (matriz_custos[0][i] + matriz_custos[0][j] - matriz_custos[i][j])
+                economia = matriz_custos[0][i] + matriz_custos[0][j] - matriz_custos[i][j]
                 economias.append((economia, i, j))
-
+    
     # Ordena as economias em ordem decrescente
-    economias.sort(reverse=True, key=lambda x: x[0])
+    economias.sort(reverse=True)
 
     # União das rotas
     for economia, i, j in economias:
@@ -440,20 +457,70 @@ def clarke_wright(servicos, matriz_custos, capacidade):
         if rota_i is None or rota_j is None or rota_i == rota_j:
             continue
 
-        # Verifica capacidade para unir as rotas
-        if rota_i['carga'] + rota_j['carga'] <= capacidade:
-            # Une rotas concatenando
+        nova_carga = rota_i['carga'] + rota_j['carga']
+        if nova_carga <= capacidade:
+
+            # Penalização para evitar rotas ruins
+            if economia < 0 and len(rota_i['servicos']) + len(rota_j['servicos']) <= 3:
+                continue
+
+            # Une rotas
             rota_i['servicos'].extend(rota_j['servicos'])
             rota_i['fim'] = rota_j['fim']
-            rota_i['carga'] += rota_j['carga']
-
+            rota_i['carga'] = nova_carga
             rotas.remove(rota_j)
 
     return rotas
 
-# Custo total da rota
+def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
+    rotas.sort(key=lambda r: len(r['servicos']))  # Começa tentando remover as menores
 
+    i = 0
+    while i < len(rotas):
+        rota_atual = rotas[i]
+        realocado = False
+
+        for serv_id in rota_atual['servicos']:
+            servico = servicos[serv_id]
+
+            for j in range(len(rotas)):
+                if i == j:
+                    continue
+
+                destino = rotas[j]
+                nova_carga = destino['carga'] + servico['demanda']
+
+                if nova_carga > capacidade:
+                    continue
+
+                # Simula custo atual e com a realocação
+                custo_antigo = custo_rota(destino, matriz_custos)
+                destino_simulada = destino['servicos'] + [serv_id]
+                destino_simulada.sort()
+                destino_tmp = {'servicos': destino_simulada}
+                custo_novo = custo_rota(destino_tmp, matriz_custos)
+
+                if custo_novo < custo_antigo + matriz_custos[0][serv_id] + matriz_custos[serv_id][0]:
+                    # Realoca
+                    destino['servicos'].append(serv_id)
+                    destino['carga'] = nova_carga
+                    realocado = True
+                    break
+
+            if realocado:
+                break
+
+        if realocado:
+            rotas.pop(i)
+        else:
+            i += 1
+
+    return rotas
+
+# Custo total da rota
 def custo_rota(rota, matriz_custos):
+    # Soma os custos de ida, entre serviços, e volta ao depósito
+
     servicos = rota['servicos']
     custo = 0
 
@@ -469,8 +536,11 @@ def custo_rota(rota, matriz_custos):
 
     return custo
 
-
+# Salva os resultados no formato padronizado
 def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos, clocks_alg, clocks_total):
+    
+    # Linha por rota: ID, demanda, custo, visitas e sequência de serviços com (S id,origem,destino)
+    
     with open(nome_saida, "w", encoding="utf-8") as f:
         f.write(f"{int(custo_total)}\n")
         f.write(f"{len(rotas)}\n")
@@ -487,6 +557,7 @@ def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_cus
                 f.write(f"(S {i+1},{s['origem']},{s['destino']}) ")
             f.write("(D 0,1,1)\n")
 
+# * Processa uma única instância: lê, extrai, calcula rota e salva
 def processar_instancia(arquivo_entrada, pasta_saida):
     nome_base = os.path.basename(arquivo_entrada).replace(".dat", "")
     cabecalho, grafo = ler_entrada(arquivo_entrada)
@@ -500,7 +571,8 @@ def processar_instancia(arquivo_entrada, pasta_saida):
 
 
     inicio_alg = time.perf_counter_ns()
-    rotas = clarke_wright(servicos, matriz_custos, capacidade)
+    rotas = clarke_wright_otimizado(servicos, matriz_custos, capacidade)
+    rotas = refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade)
     fim_alg = time.perf_counter_ns()
 
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)
@@ -518,23 +590,7 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     except Exception as e:
         print(f"❌ Erro ao adicionar estatísticas de {nome_base}: {e}")
 
-
-
-'''def processar_todos():
-    pasta_entrada = "instancias/"
-    pasta_saida = "solucoes/"
-    os.makedirs(pasta_saida, exist_ok=True)
-
-    arquivos = [f for f in os.listdir(pasta_entrada) if f.endswith(".dat")]
-
-    for arq in arquivos:
-        caminho = os.path.join(pasta_entrada, arq)
-        print(f"Processando {arq}...")
-        processar_instancia(caminho, pasta_saida)
-
-    df = pd.DataFrame(estatisticas_gerais)
-    df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")'''
-
+# Processa todos os arquivos .dat da pasta instancias/ e salva as soluções na pasta solucoes/
 def processar_todos():
     import sys
     import os
@@ -575,5 +631,3 @@ def processar_todos():
         print("📁 Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
     except Exception as e:
         print(f"❌ Erro ao salvar o CSV: {e}")
-
-
