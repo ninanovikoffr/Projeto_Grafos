@@ -16,22 +16,9 @@ def transforma(valor):
 
 # Leitura de arquivo de entrada .dat 
 def ler_entrada(arq_entrada):
-
-    '''
-    * Lê arquivos .dat com dados de grafos logísticos.
-    * Identifica e organiza os elementos:
-
-    * ReN. = nós obrigatórios com demanda
-    * ReE. = arestas obrigatórias (bidirecionais)
-    * ReA. = arcos obrigatórios (direcionais)
-    * EDGE = arestas opcionais
-    * ARC = arcos opcionais
-    * Armazena tudo em uma matriz grafo[i][j] com listas de dicionários descrevendo conexões.
-    '''
-
     cabecalho = {}
+    servicos_obrigatorios = []
 
-    # Leitura do cabeçalho
     with open(arq_entrada, "r", encoding="utf-8") as arq:
         for _ in range(11):
             linha = arq.readline().strip()
@@ -44,7 +31,6 @@ def ler_entrada(arq_entrada):
 
     with open(arq_entrada, "r", encoding="utf-8") as arq:
         linhas = arq.readlines()[11:]
-
         tabela_atual = None
 
         for linha in linhas:
@@ -52,7 +38,6 @@ def ler_entrada(arq_entrada):
             if not linha or linha.startswith("the data is"):
                 continue
 
-            # Detectar seção atual
             if linha.startswith("ReN."):
                 tabela_atual = 'ReN'
                 continue
@@ -83,17 +68,21 @@ def ler_entrada(arq_entrada):
                     }
                     grafo[u][v].append(aresta)
                     grafo[v][u].append(aresta)
-
-                elif tabela_atual == 'Edge' and len(partes) == 4:
-                    _, u, v, custo = partes
-                    u, v = int(u), int(v)
-                    aresta = {
-                        'tipo': 'aresta',
-                        'obrigatoria': False,
-                        'custo_transito': int(custo)
-                    }
-                    grafo[u][v].append(aresta)
-                    grafo[v][u].append(aresta)
+                    # Adiciona os dois sentidos, igual ao extrair_obrigatorios
+                    servicos_obrigatorios.append({
+                        'origem': u,
+                        'destino': v,
+                        'demanda': int(demanda),
+                        'custo_total': int(custo) + int(servico),
+                        'tipo': 'aresta'
+                    })
+                    servicos_obrigatorios.append({
+                        'origem': v,
+                        'destino': u,
+                        'demanda': int(demanda),
+                        'custo_total': int(custo) + int(servico),
+                        'tipo': 'aresta'
+                    })
 
                 elif tabela_atual == 'ReA' and len(partes) == 6:
                     _, u, v, custo, demanda, servico = partes
@@ -106,6 +95,42 @@ def ler_entrada(arq_entrada):
                         'custo_servico': int(servico)
                     }
                     grafo[u][v].append(arco)
+                    servicos_obrigatorios.append({
+                        'origem': u,
+                        'destino': v,
+                        'demanda': int(demanda),
+                        'custo_total': int(custo) + int(servico),
+                        'tipo': 'arco'
+                    })
+
+                elif tabela_atual == 'ReN' and len(partes) == 3:
+                    nome_no, demanda, servico = partes
+                    noh = int(nome_no[1:])
+                    no = {
+                        'tipo': 'noh',
+                        'obrigatoria': True,
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    }
+                    grafo[noh][noh].append(no)
+                    servicos_obrigatorios.append({
+                        'origem': noh,
+                        'destino': noh,
+                        'demanda': int(demanda),
+                        'custo_total': int(servico),
+                        'tipo': 'noh'
+                    })
+
+                elif tabela_atual == 'Edge' and len(partes) == 4:
+                    _, u, v, custo = partes
+                    u, v = int(u), int(v)
+                    aresta = {
+                        'tipo': 'aresta',
+                        'obrigatoria': False,
+                        'custo_transito': int(custo)
+                    }
+                    grafo[u][v].append(aresta)
+                    grafo[v][u].append(aresta)
 
                 elif tabela_atual == 'Arc' and len(partes) == 4:
                     _, u, v, custo = partes
@@ -117,21 +142,11 @@ def ler_entrada(arq_entrada):
                     }
                     grafo[u][v].append(arco)
 
-                elif tabela_atual == 'ReN' and len(partes) == 3:
-                    nome_no, demanda, servico = partes
-                    noh = int(nome_no[1:])
-                    grafo[noh][noh].append({
-                        'tipo': 'noh',
-                        'obrigatoria': True,
-                        'demanda': int(demanda),
-                        'custo_servico': int(servico)
-                    })
-
             except Exception as e:
                 print(f"⚠ Erro ao processar linha da tabela {tabela_atual}: {linha}")
                 print(f"   Detalhes: {e}")
 
-    return cabecalho, grafo
+    return cabecalho, grafo, servicos_obrigatorios
 
 
 # Funçoes auxiliares extraem e limpam os dados do cabeçalho do arquivo .dat.

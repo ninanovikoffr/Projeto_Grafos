@@ -10,12 +10,12 @@ from heuristica import *
 # * Processa uma única instância: lê, extrai, calcula rota e salva
 def processar_instancia(arquivo_entrada, pasta_saida):
     nome_base = os.path.basename(arquivo_entrada).replace(".dat", "")
-    cabecalho, grafo = ler_entrada(arquivo_entrada)
+    cabecalho, grafo, servicos_obrigatorios = ler_entrada(arquivo_entrada)
 
     inicio_total = time.perf_counter_ns()
 
     dist, _ = floyd_warshall(grafo, cabecalho)
-    servicos = extrair_obrigatorios(grafo, cabecalho)
+    servicos = servicos_obrigatorios
     matriz_custos = matriz_obrigatorios(servicos, dist)
     capacidade = capacidade_veiculo(cabecalho)
 

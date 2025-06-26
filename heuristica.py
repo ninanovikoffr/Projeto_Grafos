@@ -8,46 +8,6 @@ from estatisticas import *
 
 
 # Implementaçao do CARP
-def extrair_obrigatorios(grafo, cabecalho):
-    #Extrai os serviços obrigatórios (nós, arestas e arcos obrigatórios) com suas demandas e custos
-    
-    servicos = [];
-
-    N = quant_vertices(cabecalho)
-    for i in range(1, N+1):
-        for j in range(1, N+1):
-            celula = grafo[i][j]
-            if celula: 
-                for conexao in celula: 
-                    if conexao.get('obrigatoria', False):
-                        custo_total = conexao.get('custo_transito', 0) + conexao.get('custo_servico', 0)
-                        if conexao['tipo'] == 'aresta':
-
-                            servicos.append({
-                                'origem' : i,
-                                'destino' : j,
-                                'demanda' : conexao.get('demanda', 0),
-                                'custo_total' : custo_total,
-                                'tipo' : 'aresta'
-                            })
-                            servicos.append({
-                                'origem' : j,
-                                'destino' : i,
-                                'demanda' : conexao.get('demanda', 0),
-                                'custo_total' : custo_total,
-                                'tipo' : 'aresta'
-                            })
-
-                        elif conexao['tipo'] == 'arco':
-                            servicos.append({
-                                'origem' : i,
-                                'destino' : j,
-                                'demanda' : conexao.get('demanda', 0),
-                                'custo_total' : custo_total,
-                                'tipo' : 'arco'
-                            })
-                        
-    return servicos 
 
 # Matriz menores caminhos dentre os obrigatorios 
 def matriz_obrigatorios(servicos, distancias):
