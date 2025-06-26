@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import time
 
+from heuristica import custo_rota
+
 # Tratamento de erro
 def transforma(valor):
     # Tenta converter para inteiro ou retorna 0. Evita quebras em campos mal formatados.
