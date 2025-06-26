@@ -597,7 +597,7 @@ def processar_todos():
     import pandas as pd
 
     pasta_entrada = "instancias/"
-    pasta_saida = "solucoes/"
+    pasta_saida = "G12/"
     os.makedirs(pasta_saida, exist_ok=True)
 
     import re
