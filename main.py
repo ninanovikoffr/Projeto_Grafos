@@ -1,5 +1,4 @@
 import importlib
-import proj
 import time
 import os 
 
@@ -83,4 +82,5 @@ def processar_todos():
         print(f"❌ Erro ao salvar o CSV: {e}")
     
 
-processar_todos()
+if __name__ == "__main__":
+    processar_todos()
