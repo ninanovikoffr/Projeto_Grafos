@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import time
 
-from heuristica import custo_rota
 
 # Tratamento de erro
 def transforma(valor):
@@ -177,7 +176,7 @@ def deposito(cabecalho):
 
 # Salva os resultados no formato padronizado
 def salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo_total, matriz_custos, clocks_alg, clocks_total):
-    
+    from heuristica import custo_rota
     # Linha por rota: ID, demanda, custo, visitas e sequência de serviços com (S id,origem,destino)
     
     with open(nome_saida, "w", encoding="utf-8") as f:

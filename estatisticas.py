@@ -4,6 +4,7 @@ import os
 import time
 
 from leitura_escrita import *
+from leitura_escrita import transforma
 
 # Calcula a densidade real do grafo
 def densidade_grafo (cabecalho):

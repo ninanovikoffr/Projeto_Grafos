@@ -1,6 +1,9 @@
 import importlib
+import csv
+import pandas as pd
+import os
 import time
-import os 
+
 
 from leitura_escrita import *
 from estatisticas import *
@@ -37,13 +40,11 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     try:
         adicionar_estatisticas(nome_base, cabecalho, grafo)
     except Exception as e:
-        print(f"❌ Erro ao adicionar estatísticas de {nome_base}: {e}")
+        print(f"Erro ao adicionar estatísticas de {nome_base}: {e}")
 
 # Processa todos os arquivos .dat da pasta instancias/ e salva as soluções na pasta solucoes/
 def processar_todos():
     import sys
-    import os
-    import pandas as pd
 
     pasta_entrada = "instancias/"
     pasta_saida = "G12/"
@@ -63,23 +64,23 @@ def processar_todos():
 
 
     for idx, arq in enumerate(arquivos, start=1):
-        print(f"\n🟡 ({idx}/{len(arquivos)}) Processando {arq}...")
+        print(f"\n({idx}/{len(arquivos)}) Processando {arq}...")
         sys.stdout.flush()  # força exibir print antes da execução
 
         caminho = os.path.join(pasta_entrada, arq)
 
         try:
             processar_instancia(caminho, pasta_saida)
-            print(f"✅ {arq} processado com sucesso.")
+            print(f"{arq} processado com sucesso.")
         except Exception as e:
-            print(f"❌ Erro ao processar {arq}: {e}")
+            print(f"Erro ao processar {arq}: {e}")
 
     try:
         df = pd.DataFrame(estatisticas_gerais)
         df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
-        print("📁 Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
+        print("Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
     except Exception as e:
-        print(f"❌ Erro ao salvar o CSV: {e}")
+        print(f"Erro ao salvar o CSV: {e}")
     
 
 if __name__ == "__main__":
