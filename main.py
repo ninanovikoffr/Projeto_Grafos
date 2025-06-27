@@ -5,7 +5,6 @@ import os
 import time
 import concurrent.futures
 
-
 from leitura_escrita import *
 from estatisticas import *
 from heuristica import *

@@ -173,9 +173,6 @@ def diametro_grafo(grafo, cabecalho):
 
     return max_dist
 
-
-estatisticas_gerais = []
-
 # Coleta estatísticas para salvar num .csv no final (opcional)
 def adicionar_estatisticas(nome_base, cabecalho, grafo):
     grau_total, grau_entrada, grau_saida = graus_nohs(grafo, cabecalho)
@@ -188,19 +185,19 @@ def adicionar_estatisticas(nome_base, cabecalho, grafo):
     grau_saida_min = min(grau_saida[1:]) if any(grau_saida[1:]) else 0
     densidade = densidade_grafo(cabecalho)
 
-    estatisticas_gerais.append({
-    "Instância": nome_base,
-    "Qtde Vértices": transforma(cabecalho.get('#Nodes')),
-    "Qtde Arestas": transforma(cabecalho.get('#Edges')),
-    "Qtde Arcos": transforma(cabecalho.get('#Arcs')),
-    "Qtde Vértices Req.": transforma(cabecalho.get('#Required N')),
-    "Qtde Arestas Req.": transforma(cabecalho.get('#Required E')),
-    "Qtde Arcos Req.": transforma(cabecalho.get('#Required A')),
-    "Densidade": round(densidade, 4),
-    "Grau Total Máx": grau_total_max,
-    "Grau Entrada Máx": grau_entrada_max,
-    "Grau Saída Máx": grau_saida_max,
-    "Grau Total Mín": grau_total_min,
-    "Grau Entrada Mín": grau_entrada_min,
-    "Grau Saída Mín": grau_saida_min
-})
+    return {
+        'nome': nome_base,
+        'num_vertices': quant_vertices(cabecalho),
+        'num_arestas': quant_arestas(cabecalho),
+        'num_arcos': quant_arcos(cabecalho),
+        'num_vertices_requeridos': quant_vertices_requeridos(cabecalho),
+        'num_arestas_requeridas': quant_arestas_requeridas(cabecalho),
+        'num_arcos_requeridos': quant_arcos_requeridos(cabecalho),
+        'densidade': round(densidade, 4),
+        'grau_total_max': grau_total_max,
+        'grau_entrada_max': grau_entrada_max,
+        'grau_saida_max': grau_saida_max,
+        'grau_total_min': grau_total_min,
+        'grau_entrada_min': grau_entrada_min,
+        'grau_saida_min': grau_saida_min
+    }
