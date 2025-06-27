@@ -3,6 +3,7 @@ import csv
 import pandas as pd
 import os
 import time
+import concurrent.futures
 
 
 from leitura_escrita import *
@@ -37,46 +38,49 @@ def processar_instancia(arquivo_entrada, pasta_saida):
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
     salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos, clocks_alg, clocks_total)
 
+    estatistica = None
     try:
-        adicionar_estatisticas(nome_base, cabecalho, grafo)
+        estatistica = adicionar_estatisticas(nome_base, cabecalho, grafo)
     except Exception as e:
         print(f"Erro ao adicionar estatísticas de {nome_base}: {e}")
+
+    return estatistica
+
+def worker(args):
+    arq, pasta_entrada, pasta_saida = args
+    caminho = os.path.join(pasta_entrada, arq)
+    try:
+        estatistica = processar_instancia(caminho, pasta_saida)
+        print(f"{arq} processado com sucesso.")
+        return estatistica
+    except Exception as e:
+        print(f"Erro ao processar {arq}: {e}")
+        return None
 
 # Processa todos os arquivos .dat da pasta instancias/ e salva as soluções na pasta solucoes/
 def processar_todos():
     import sys
-
     pasta_entrada = "instancias/"
     pasta_saida = "G12/"
     os.makedirs(pasta_saida, exist_ok=True)
-
     import re
-
     def ordenar(nome):
-    # Divide o nome do arquivo em blocos de texto e números
         return [int(bloco) if bloco.isdigit() else bloco.lower() 
             for bloco in re.split(r'(\d+)', nome)]
-
     arquivos = sorted([
         f.strip() for f in os.listdir(pasta_entrada)
         if f.lower().strip().endswith(".dat")
     ], key=ordenar)
 
+    args_list = [(arq, pasta_entrada, pasta_saida) for arq in arquivos]
 
-    for idx, arq in enumerate(arquivos, start=1):
-        print(f"\n({idx}/{len(arquivos)}) Processando {arq}...")
-        sys.stdout.flush()  # força exibir print antes da execução
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        estatisticas = list(executor.map(worker, args_list))
 
-        caminho = os.path.join(pasta_entrada, arq)
-
-        try:
-            processar_instancia(caminho, pasta_saida)
-            print(f"{arq} processado com sucesso.")
-        except Exception as e:
-            print(f"Erro ao processar {arq}: {e}")
-
+    # Remove None e achata listas se necessario
+    estatisticas = [e for e in estatisticas if e is not None]
     try:
-        df = pd.DataFrame(estatisticas_gerais)
+        df = pd.DataFrame(estatisticas)
         df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
         print("Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
     except Exception as e:
