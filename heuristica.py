@@ -95,17 +95,24 @@ def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
                 if nova_carga > capacidade:
                     continue
 
-                # Simula custo atual e com a realocação
-                custo_antigo = custo_rota(destino, matriz_custos)
-                destino_simulada = destino['servicos'] + [serv_id]
-                destino_simulada.sort()
-                destino_tmp = {'servicos': destino_simulada}
-                custo_novo = custo_rota(destino_tmp, matriz_custos)
+                # Custos antes da realocação
+                custo_antigo_origem = custo_rota(rota_atual, matriz_custos)
+                custo_antigo_destino = custo_rota(destino, matriz_custos)
 
-                if custo_novo < custo_antigo + matriz_custos[0][serv_id] + matriz_custos[serv_id][0]:
+                # Simula as rotas após a realocação
+                servicos_origem_novo = [s for s in rota_atual['servicos'] if s != serv_id]
+                servicos_destino_novo = destino['servicos'] + [serv_id]
+
+                custo_novo_origem = custo_rota({'servicos': servicos_origem_novo}, matriz_custos) if servicos_origem_novo else 0
+                custo_novo_destino = custo_rota({'servicos': servicos_destino_novo}, matriz_custos)
+
+                # Critério correto: só realoca se a soma dos custos das rotas diminuir
+                if custo_novo_origem + custo_novo_destino < custo_antigo_origem + custo_antigo_destino:
                     # Realoca
                     destino['servicos'].append(serv_id)
                     destino['carga'] = nova_carga
+                    rota_atual['servicos'].remove(serv_id)
+                    rota_atual['carga'] -= servico['demanda']
                     realocado = True
                     break
 
@@ -113,7 +120,11 @@ def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
                 break
 
         if realocado:
-            rotas.pop(i)
+            # Remove rota se ficou vazia
+            if not rota_atual['servicos']:
+                rotas.pop(i)
+            else:
+                i += 1
         else:
             i += 1
 
