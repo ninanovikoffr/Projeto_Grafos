@@ -24,7 +24,7 @@ def processar_instancia(arquivo_entrada, pasta_saida):
 
     inicio_alg = time.perf_counter_ns()
     rotas = clarke_wright_otimizado(servicos, matriz_custos, capacidade)
-    rotas = refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade)
+    rotas = refinar_rotas_duplo_criterio(rotas, servicos, matriz_custos, capacidade)
     fim_alg = time.perf_counter_ns()
 
     custo = sum(custo_rota(rota, matriz_custos) for rota in rotas)

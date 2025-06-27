@@ -74,6 +74,26 @@ def clarke_wright_otimizado(servicos, matriz_custos, capacidade):
 
     return rotas
 
+def two_opt(rota, matriz_custos):
+    servicos = rota['servicos']
+    melhor = servicos[:]
+    melhor_custo = custo_rota({'servicos': melhor}, matriz_custos)
+    melhorou = True
+    while melhorou:
+        melhorou = False
+        for i in range(1, len(melhor) - 1):
+            for j in range(i + 1, len(melhor)):
+                if j - i == 1:
+                    continue
+                nova = melhor[:i] + melhor[i:j][::-1] + melhor[j:]
+                novo_custo = custo_rota({'servicos': nova}, matriz_custos)
+                if novo_custo < melhor_custo:
+                    melhor = nova
+                    melhor_custo = novo_custo
+                    melhorou = True
+        servicos = melhor[:]
+    return melhor
+
 def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
     rotas.sort(key=lambda r: len(r['servicos']))  # Começa tentando remover as menores
 
@@ -95,24 +115,32 @@ def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
                 if nova_carga > capacidade:
                     continue
 
-                # Custos antes da realocação
                 custo_antigo_origem = custo_rota(rota_atual, matriz_custos)
                 custo_antigo_destino = custo_rota(destino, matriz_custos)
 
-                # Simula as rotas após a realocação
                 servicos_origem_novo = [s for s in rota_atual['servicos'] if s != serv_id]
-                servicos_destino_novo = destino['servicos'] + [serv_id]
+
+                # Testa todas as posições possíveis de inserção
+                melhor_custo_novo_destino = None
+                melhor_pos = None
+                for pos in range(len(destino['servicos']) + 1):
+                    servicos_destino_novo = destino['servicos'][:pos] + [serv_id] + destino['servicos'][pos:]
+                    custo_novo_destino = custo_rota({'servicos': servicos_destino_novo}, matriz_custos)
+                    if (melhor_custo_novo_destino is None) or (custo_novo_destino < melhor_custo_novo_destino):
+                        melhor_custo_novo_destino = custo_novo_destino
+                        melhor_pos = pos
 
                 custo_novo_origem = custo_rota({'servicos': servicos_origem_novo}, matriz_custos) if servicos_origem_novo else 0
-                custo_novo_destino = custo_rota({'servicos': servicos_destino_novo}, matriz_custos)
 
                 # Critério correto: só realoca se a soma dos custos das rotas diminuir
-                if custo_novo_origem + custo_novo_destino < custo_antigo_origem + custo_antigo_destino:
-                    # Realoca
-                    destino['servicos'].append(serv_id)
+                if custo_novo_origem + melhor_custo_novo_destino < custo_antigo_origem + custo_antigo_destino:
+                    # Realoca na melhor posição
+                    destino['servicos'].insert(melhor_pos, serv_id)
                     destino['carga'] = nova_carga
                     rota_atual['servicos'].remove(serv_id)
                     rota_atual['carga'] -= servico['demanda']
+                    # Aplica 2-opt na rota destino
+                    destino['servicos'] = two_opt(destino, matriz_custos)
                     realocado = True
                     break
 
@@ -124,11 +152,68 @@ def refinar_rotas_por_realocacao(rotas, servicos, matriz_custos, capacidade):
             if not rota_atual['servicos']:
                 rotas.pop(i)
             else:
+                # Aplica 2-opt na rota de origem também
+                rota_atual['servicos'] = two_opt(rota_atual, matriz_custos)
                 i += 1
         else:
             i += 1
 
     return rotas
+
+# Refinamento: compara realocação com critério correto (custo total) e critério ruim (ex: número de rotas)
+def refinar_rotas_duplo_criterio(rotas, servicos, matriz_custos, capacidade):
+    import copy
+    # Critério correto: custo total
+    rotas_correto = copy.deepcopy(rotas)
+    rotas_correto = refinar_rotas_por_realocacao(rotas_correto, servicos, matriz_custos, capacidade)
+    custo_correto = sum(custo_rota(r, matriz_custos) for r in rotas_correto)
+
+    # Critério ruim: apenas número de rotas (realoca se diminuir número de rotas, mesmo que o custo aumente)
+    def refinar_rotas_num_rotas(rotas, servicos, matriz_custos, capacidade):
+        rotas.sort(key=lambda r: len(r['servicos']))
+        i = 0
+        while i < len(rotas):
+            rota_atual = rotas[i]
+            realocado = False
+            for serv_id in rota_atual['servicos']:
+                servico = servicos[serv_id]
+                for j in range(len(rotas)):
+                    if i == j:
+                        continue
+                    destino = rotas[j]
+                    nova_carga = destino['carga'] + servico['demanda']
+                    if nova_carga > capacidade:
+                        continue
+                    # Critério ruim: realoca se rota de origem ficar vazia (diminui número de rotas)
+                    if len(rota_atual['servicos']) == 1:
+                        destino['servicos'].append(serv_id)
+                        destino['carga'] = nova_carga
+                        rota_atual['servicos'].remove(serv_id)
+                        rota_atual['carga'] -= servico['demanda']
+                        destino['servicos'] = two_opt(destino, matriz_custos)
+                        realocado = True
+                        break
+                if realocado:
+                    break
+            if realocado:
+                if not rota_atual['servicos']:
+                    rotas.pop(i)
+                else:
+                    rota_atual['servicos'] = two_opt(rota_atual, matriz_custos)
+                    i += 1
+            else:
+                i += 1
+        return rotas
+
+    rotas_ruim = copy.deepcopy(rotas)
+    rotas_ruim = refinar_rotas_num_rotas(rotas_ruim, servicos, matriz_custos, capacidade)
+    custo_ruim = sum(custo_rota(r, matriz_custos) for r in rotas_ruim)
+
+    # Retorna a solução de menor custo total
+    if custo_correto <= custo_ruim:
+        return rotas_correto
+    else:
+        return rotas_ruim
 
 # Custo total da rota
 def custo_rota(rota, matriz_custos):
