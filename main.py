@@ -4,7 +4,6 @@ import pandas as pd
 import os
 import time
 
-
 from leitura_escrita import *
 from estatisticas import *
 from heuristica import *

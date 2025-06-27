@@ -17,6 +17,7 @@ def transforma(valor):
 def ler_entrada(arq_entrada):
     cabecalho = {}
     servicos_obrigatorios = []
+    id_servico = 1  # contador sequencial dos obrigatórios
 
     with open(arq_entrada, "r", encoding="utf-8") as arq:
         for _ in range(11):
@@ -55,91 +56,94 @@ def ler_entrada(arq_entrada):
 
             partes = linha.split()
             try:
-                if tabela_atual == 'ReE' and len(partes) == 6:
-                    _, u, v, custo, demanda, servico = partes
-                    u, v = int(u), int(v)
-                    aresta = {
-                        'tipo': 'aresta',
-                        'obrigatoria': True,
-                        'custo_transito': int(custo),
-                        'demanda': int(demanda),
-                        'custo_servico': int(servico)
-                    }
-                    grafo[u][v].append(aresta)
-                    grafo[v][u].append(aresta)
-                    # Adiciona os dois sentidos, igual ao extrair_obrigatorios
-                    servicos_obrigatorios.append({
-                        'origem': u,
-                        'destino': v,
-                        'demanda': int(demanda),
-                        'custo_total': int(custo) + int(servico),
-                        'tipo': 'aresta'
-                    })
-                    servicos_obrigatorios.append({
-                        'origem': v,
-                        'destino': u,
-                        'demanda': int(demanda),
-                        'custo_total': int(custo) + int(servico),
-                        'tipo': 'aresta'
-                    })
-
-                elif tabela_atual == 'ReA' and len(partes) == 6:
-                    _, u, v, custo, demanda, servico = partes
-                    u, v = int(u), int(v)
-                    arco = {
-                        'tipo': 'arco',
-                        'obrigatoria': True,
-                        'custo_transito': int(custo),
-                        'demanda': int(demanda),
-                        'custo_servico': int(servico)
-                    }
-                    grafo[u][v].append(arco)
-                    servicos_obrigatorios.append({
-                        'origem': u,
-                        'destino': v,
-                        'demanda': int(demanda),
-                        'custo_total': int(custo) + int(servico),
-                        'tipo': 'arco'
-                    })
-
-                elif tabela_atual == 'ReN' and len(partes) == 3:
+                if tabela_atual == 'ReN' and len(partes) == 3:
                     nome_no, demanda, servico = partes
                     noh = int(nome_no[1:])
-                    no = {
-                        'tipo': 'noh',
-                        'obrigatoria': True,
-                        'demanda': int(demanda),
-                        'custo_servico': int(servico)
-                    }
-                    grafo[noh][noh].append(no)
                     servicos_obrigatorios.append({
+                        'id': id_servico,
                         'origem': noh,
                         'destino': noh,
                         'demanda': int(demanda),
                         'custo_total': int(servico),
                         'tipo': 'noh'
                     })
+                    grafo[noh][noh].append({
+                        'tipo': 'noh',
+                        'obrigatoria': True,
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    })
+                    id_servico += 1
+
+                elif tabela_atual == 'ReE' and len(partes) == 6:
+                    _, u, v, custo, demanda, servico = partes
+                    u, v = int(u), int(v)
+                    servicos_obrigatorios.append({
+                        'id': id_servico,
+                        'origem': u,
+                        'destino': v,
+                        'demanda': int(demanda),
+                        'custo_total': int(custo) + int(servico),
+                        'tipo': 'aresta'
+                    })
+                    grafo[u][v].append({
+                        'tipo': 'aresta',
+                        'obrigatoria': True,
+                        'custo_transito': int(custo),
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    })
+                    grafo[v][u].append({
+                        'tipo': 'aresta',
+                        'obrigatoria': True,
+                        'custo_transito': int(custo),
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    })
+                    id_servico += 1
+
+                elif tabela_atual == 'ReA' and len(partes) == 6:
+                    _, u, v, custo, demanda, servico = partes
+                    u, v = int(u), int(v)
+                    servicos_obrigatorios.append({
+                        'id': id_servico,
+                        'origem': u,
+                        'destino': v,
+                        'demanda': int(demanda),
+                        'custo_total': int(custo) + int(servico),
+                        'tipo': 'arco'
+                    })
+                    grafo[u][v].append({
+                        'tipo': 'arco',
+                        'obrigatoria': True,
+                        'custo_transito': int(custo),
+                        'demanda': int(demanda),
+                        'custo_servico': int(servico)
+                    })
+                    id_servico += 1
 
                 elif tabela_atual == 'Edge' and len(partes) == 4:
                     _, u, v, custo = partes
                     u, v = int(u), int(v)
-                    aresta = {
+                    grafo[u][v].append({
                         'tipo': 'aresta',
                         'obrigatoria': False,
                         'custo_transito': int(custo)
-                    }
-                    grafo[u][v].append(aresta)
-                    grafo[v][u].append(aresta)
+                    })
+                    grafo[v][u].append({
+                        'tipo': 'aresta',
+                        'obrigatoria': False,
+                        'custo_transito': int(custo)
+                    })
 
                 elif tabela_atual == 'Arc' and len(partes) == 4:
                     _, u, v, custo = partes
                     u, v = int(u), int(v)
-                    arco = {
+                    grafo[u][v].append({
                         'tipo': 'arco',
                         'obrigatoria': False,
                         'custo_transito': int(custo)
-                    }
-                    grafo[u][v].append(arco)
+                    })
 
             except Exception as e:
                 print(f"⚠ Erro ao processar linha da tabela {tabela_atual}: {linha}")
