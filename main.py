@@ -31,8 +31,8 @@ def processar_instancia(arquivo_entrada, pasta_saida):
 
     fim_total = time.perf_counter_ns()
 
-    clocks_alg = fim_alg - inicio_alg          # clocks do algoritmo
-    clocks_total = fim_total - inicio_total    # clocks do programa todo
+    clocks_alg = int(fim_alg - inicio_alg)          # clocks do algoritmo
+    clocks_total = int(fim_total - inicio_total)    # clocks do programa todo
 
     nome_saida = os.path.join(pasta_saida, f"sol-{nome_base}.dat")
     salvar_rotas_em_arquivo(nome_saida, rotas, servicos, custo, matriz_custos, clocks_alg, clocks_total)
@@ -50,11 +50,9 @@ def worker(args):
     caminho = os.path.join(pasta_entrada, arq)
     try:
         estatistica = processar_instancia(caminho, pasta_saida)
-        print(f"{arq} processado com sucesso.")
-        return estatistica
+        return (arq, True, estatistica)
     except Exception as e:
-        print(f"Erro ao processar {arq}: {e}")
-        return None
+        return (arq, False, str(e))
 
 # Processa todos os arquivos .dat da pasta instancias/ e salva as soluções na pasta solucoes/
 def processar_todos():
@@ -73,17 +71,24 @@ def processar_todos():
 
     args_list = [(arq, pasta_entrada, pasta_saida) for arq in arquivos]
 
+    estatisticas = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        estatisticas = list(executor.map(worker, args_list))
+        for result in executor.map(worker, args_list):
+            arq, sucesso, info = result
+            if sucesso:
+                print(f"{arq} processado com sucesso.", flush=True)
+                estatisticas.append(info)
+            else:
+                print(f"Erro ao processar {arq}: {info}", flush=True)
 
     # Remove None e achata listas se necessario
     estatisticas = [e for e in estatisticas if e is not None]
     try:
         df = pd.DataFrame(estatisticas)
         df.to_csv("estatisticas_gerais.csv", index=False, sep=';', encoding="utf-8")
-        print("Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'")
+        print("Estatísticas salvas com sucesso em 'estatisticas_gerais.csv'", flush=True)
     except Exception as e:
-        print(f"Erro ao salvar o CSV: {e}")
+        print(f"Erro ao salvar o CSV: {e}", flush=True)
     
 
 if __name__ == "__main__":
